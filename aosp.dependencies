@@ -1,0 +1,16 @@
+[
+  {
+    "repository": "kernel_leeco_msm8976",
+    "target_path": "kernel/leeco/msm8976"
+  },
+  {
+    "repository" : "vendor_leeco",
+    "target_path": "vendor/leeco"
+  },
+  {
+    "repository": "LineageOS/android_packages_resources_devicesettings",
+    "target_path": "packages/resources/devicesettings",
+    "branch": "lineage-16.0",
+    "remote": "github"
+  }
+]
