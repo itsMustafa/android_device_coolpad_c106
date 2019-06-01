@@ -6,7 +6,7 @@ $(call inherit-product, vendor/omni/config/common.mk)
 
 # Kernel
 PRODUCT_COPY_FILES += \
-	$(LOCAL_PATH)/Image.gz-dtb:kernel
+	$(LOCAL_PATH)/prebuilt/Image.gz-dtb:kernel
 
 # Device identifier. This must come after all inclusions
 PRODUCT_DEVICE := c103
