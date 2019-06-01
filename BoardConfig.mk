@@ -1,27 +1,12 @@
-#
-# Copyright 2017 The Android Open Source Project
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT_DIR WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
+DEVICE_TREE := device/coolpad/c103
 
-# This contains the module build definitions for the hardware-specific
-# components for this device.
-#
-# As much as possible, those components should be built unconditionally,
-# with device-specific names to avoid collisions, to avoid device-specific
-# bitrot and build breakages. Building a component unconditionally does
-# *not* include it on all devices, so it is safe even with hardware-specific
-# components.
+# Bootloader
+TARGET_BOOTLOADER_BOARD_NAME := msm8952
+TARGET_NO_BOOTLOADER := true
+
+# Platform
+TARGET_BOARD_PLATFORM := msm8952
+TARGET_BOARD_PLATFORM_GPU := qcom-adreno510
 
 # Architecture
 TARGET_ARCH := arm64
@@ -34,16 +19,8 @@ TARGET_2ND_ARCH := arm
 TARGET_2ND_ARCH_VARIANT := armv7-a-neon
 TARGET_2ND_CPU_ABI := armeabi-v7a
 TARGET_2ND_CPU_ABI2 := armeabi
-TARGET_2ND_CPU_VARIANT := armv8-a
+TARGET_2ND_CPU_VARIANT := cortex-a53
 
-TARGET_USES_64_BIT_BINDER := true
-
-# Bootloader
-TARGET_BOOTLOADER_BOARD_NAME := MSM8952
-TARGET_NO_BOOTLOADER := true
-
-# Crypto
-TARGET_HW_DISK_ENCRYPTION := true
 
 # Kernel
 BOARD_KERNEL_CMDLINE := console=ttyHSL0,115200,n8 androidboot.console=ttyHSL0 androidboot.hardware=qcom msm_rtb.filter=0x237 ehci-hcd.park=3 androidboot.bootdevice=7824900.sdhci lpm_levels.sleep_disabled=1 earlyprintk
@@ -51,11 +28,8 @@ BOARD_KERNEL_BASE := 0x80000000
 BOARD_KERNEL_PAGESIZE := 2048
 BOARD_KERNEL_TAGS_OFFSET := 0x00000100
 BOARD_RAMDISK_OFFSET     := 0x02000000
-TARGET_PREBUILT_KERNEL := device/coolpad/c103/prebuilt/Image.gz-dtb
+TARGET_PREBUILT_KERNEL := $(DEVICE_TREE)/Image.gz-dtb
 
-# Platform
-TARGET_BOARD_PLATFORM := MSM8952
-TARGET_BOARD_PLATFORM_GPU := qcom-adreno510
 
 # Partitions
 BOARD_FLASH_BLOCK_SIZE := 131072
@@ -74,32 +48,30 @@ TARGET_USERIMAGES_USE_F2FS := true
 # Init 
 TARGET_PLATFORM_DEVICE_BASE := /devices/soc.0/7824900.sdhci/
 
-# Full disk encryption
-TARGET_HW_DISK_ENCRYPTION := true
-TARGET_KEYMASTER_WAIT_FOR_QSEE := true
-TW_INCLUDE_CRYPTO := true
-TW_INCLUDE_CRYPTO_OLD := true
-
 # Recovery
 BOARD_HAS_LARGE_FILESYSTEM := true
 TARGET_RECOVERY_PIXEL_FORMAT := "RGBX_8888"
 
 # TWRP specific build flags
-RECOVERY_SDCARD_ON_DATA := true
-TARGET_RECOVERY_QCOM_RTC_FIX := true
-TW_BRIGHTNESS_PATH := "/sys/class/leds/lcd-backlight/brightness"
-TW_EXCLUDE_DEFAULT_USB_INIT := true
-TW_EXTRA_LANGUAGES := true
-TW_INCLUDE_CRYPTO := true
-TW_INCLUDE_NTFS_3G := true
-TW_INPUT_BLACKLIST := "hbtp_vm"
-TW_MAX_BRIGHTNESS := 200
-TW_DEFAULT_BRIGHTNESS := 160
 TW_THEME := portrait_hdpi
-TW_SCREEN_BLANK_ON_BOOT := true
-TW_USE_TOOLBOX := true
-TW_HAS_EDL_MODE := true
-TARGET_RECOVERY_FSTAB := $(LOCAL_PATH)/recovery.fstab
-TARGET_RECOVERY_DEVICE_MODULES := libbinder libgui libui libEGL libGLESv2 libprotobuf-cpp-lite libsync
-TW_RECOVERY_ADDITIONAL_RELINK_FILES := $(OUT_DIR)/system/lib64/libbinder.so $(OUT_DIR)/system/lib64/libgui.so $(OUT_DIR)/system/lib64/libui.so $(OUT_DIR)/system/lib64/libEGL.so $(OUT_DIR)/system/lib64/libGLESv2.so $(OUT_DIR)/system/lib64/libprotobuf-cpp-lite.so $(OUT_DIR)/system/lib64/libsync.so
-PLATFORM_SECURITY_PATCH := 2025-12-31
+RECOVERY_SDCARD_ON_DATA := true
+TARGET_RECOVERY_PIXEL_FORMAT := "RGBX_8888"
+TARGET_RECOVERY_QCOM_RTC_FIX := true
+TARGET_USE_CUSTOM_LUN_FILE_PATH := /sys/devices/platform/msm_hsusb/gadget/lun0/file
+TW_BRIGHTNESS_PATH := /sys/class/leds/lcd-backlight/brightness
+TW_DEFAULT_BRIGHTNESS := 80
+TW_DEFAULT_EXTERNAL_STORAGE := true
+TW_EXCLUDE_SUPERSU := true
+TW_INCLUDE_NTFS_3G := true
+TW_IGNORE_MISC_WIPE_DATA := true
+
+# Asian region languages
+TW_EXTRA_LANGUAGES := true
+
+# Encryption support
+TW_INCLUDE_CRYPTO := true
+TARGET_HW_DISK_ENCRYPTION := true
+TARGET_KEYMASTER_WAIT_FOR_QSEE := true
+
+# Debug flags
+TWRP_INCLUDE_LOGCAT := true
