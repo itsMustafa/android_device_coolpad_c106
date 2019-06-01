@@ -9,7 +9,7 @@
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# WITHOUT_DIR WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
@@ -101,5 +101,5 @@ TW_USE_TOOLBOX := true
 TW_HAS_EDL_MODE := true
 TARGET_RECOVERY_FSTAB := $(LOCAL_PATH)/recovery.fstab
 TARGET_RECOVERY_DEVICE_MODULES := libbinder libgui libui libEGL libGLESv2 libprotobuf-cpp-lite libsync
-TW_RECOVERY_ADDITIONAL_RELINK_FILES := $(OUT)/system/lib64/libbinder.so $(OUT)/system/lib64/libgui.so $(OUT)/system/lib64/libui.so $(OUT)/system/lib64/libEGL.so $(OUT)/system/lib64/libGLESv2.so $(OUT)/system/lib64/libprotobuf-cpp-lite.so $(OUT)/system/lib64/libsync.so
+TW_RECOVERY_ADDITIONAL_RELINK_FILES := $(OUT_DIR)/system/lib64/libbinder.so $(OUT_DIR)/system/lib64/libgui.so $(OUT_DIR)/system/lib64/libui.so $(OUT_DIR)/system/lib64/libEGL.so $(OUT_DIR)/system/lib64/libGLESv2.so $(OUT_DIR)/system/lib64/libprotobuf-cpp-lite.so $(OUT_DIR)/system/lib64/libsync.so
 PLATFORM_SECURITY_PATCH := 2025-12-31
