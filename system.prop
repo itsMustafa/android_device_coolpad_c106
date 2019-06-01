@@ -1,3 +1,5 @@
-ro.sf.lcd_density=440
-ro.hardware.keystore=msm8952
-persist.sys.usb.config=mtp,adb
+ro.product.brand=coolpad
+ro.product.name=c103
+ro.product.device=c103
+ro.product.mod_device=c103_indian
+ro.build.product=c103

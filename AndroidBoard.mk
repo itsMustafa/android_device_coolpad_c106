@@ -23,10 +23,8 @@
 # *not* include it on all devices, so it is safe even with hardware-specific
 # components.
 
-ifneq ($(filter c103,$(TARGET_DEVICE)),)
-
 LOCAL_PATH := $(call my-dir)
 
+ifneq ($(filter c103,$(TARGET_DEVICE)),)
 include $(call all-makefiles-under,$(LOCAL_PATH))
-
 endif
