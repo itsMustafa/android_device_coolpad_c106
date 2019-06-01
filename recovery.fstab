@@ -1,0 +1,67 @@
+# Partition		format			device											option
+/boot			emmc			/dev/block/bootdevice/by-name/boot				flags=display="boot";backup=1
+/system			ext4			/dev/block/bootdevice/by-name/system
+/system_image	emmc			/dev/block/bootdevice/by-name/system
+/cache			ext4			/dev/block/bootdevice/by-name/cache
+/data           ext4			/dev/block/bootdevice/by-name/userdata			flags=forceencrypt=footer
+/splash			emmc			/dev/block/bootdevice/by-name/splash			flags=display="Splash";backup=1;flashimg=1
+/recovery		emmc			/dev/block/bootdevice/by-name/recovery			flags=display="Recovery";backup=1
+/persist		ext4			/dev/block/bootdevice/by-name/persist			flags=display="Persist";backup=1
+/modem			emmc			/dev/block/bootdevice/by-name/modem				flags=display="Modem";backup=1;flashimg=1
+
+/aboot			emmc			/dev/block/bootdevice/by-name/aboot				flags=display="aboot";backup=1
+/abootbak		emmc			/dev/block/bootdevice/by-name/abootbak			flags=subpartitionof=/aboot;backup=1
+/fsc			emmc			/dev/block/bootdevice/by-name/fsc				flags=display="fsc";backup=1
+/fsg			emmc			/dev/block/bootdevice/by-name/fsg				flags=display="fsg";backup=1
+/hyp			emmc			/dev/block/bootdevice/by-name/hyp				flags=display="hyp";backup=1
+/hypbak			emmc			/dev/block/bootdevice/by-name/hypbak			flags=subpartitionof=/hyp;backup=1
+/misc			emmc			/dev/block/bootdevice/by-name/misc
+/modemst1		emmc			/dev/block/bootdevice/by-name/modemst1			flags=display="modemst1";backup=1
+/modemst2		emmc			/dev/block/bootdevice/by-name/modemst2			flags=display="modemst2";backup=1
+/tz				emmc			/dev/block/bootdevice/by-name/tz				flags=display="tz";backup=1
+/tzbak			emmc			/dev/block/bootdevice/by-name/tzbak				flags=subpartitionof=/tz;backup=1
+/rpm			emmc			/dev/block/bootdevice/by-name/rpm				flags=display="rpm";backup=1
+/rpmbak			emmc			/dev/block/bootdevice/by-name/rpmbak			flags=subpartitionof=/rpm;backup=1
+/sbl1			emmc			/dev/block/bootdevice/by-name/sbl1				flags=display="sbl1";backup=1
+/sbl1bak		emmc			/dev/block/bootdevice/by-name/sbl1bak			flags=subpartitionof=/sbl1;backup=1
+
+
+
+/usbotg			auto    		/dev/block/sda1		/dev/block/sda				flags=display="Usb-Otg";storage;removable;backup=0
+
+
+# Additional partitions
+#/DDR			emmc			/dev/block/bootdevice/by-name/DDR				flags=display="DDR";backup=1
+#/OEMCONFIG		emmc			/dev/block/bootdevice/by-name/OEMCONFIG			flags=display="OEMCONFIG";backup=1
+#/bootconfig
+#/cmnlib
+#/cmnlibbak
+#/frp			emmc			/dev/block/bootdevice/by-name/config
+#/devcfg		emmc			/dev/block/bootdevice/by-name/devcfg
+#/devinfo
+#/dip
+#/dpo
+#/dsp			emmc			/dev/block/bootdevice/by-name/dsp				flags=display="dsp";backup=1
+#/factory		emmc			/dev/block/bootdevice/by-name/factory			flags=display="factory";backup=1
+#/kernellog
+#/keymaster
+#/keymasterbak
+#/keystore		emmc			/dev/block/bootdevice/by-name/keystore          flags=display="keystore";backup=1
+#/letvconfig
+#/letveui
+#/letvreserve
+#/letvsecure
+#/limits
+#/mcfg
+#/mdtp
+#/mota
+#/msadp
+#/oem
+#/oeminfo
+#/panic
+#/params
+#/recoveryconfig
+#/rootconfig
+#/sec			emmc			/dev/block/bootdevice/by-name/sec				flags=display="sec";backup=1
+#/ssd			emmc			/dev/block/bootdevice/by-name/ssd				flags=display="ssd";backup=1
+#/syscfg
