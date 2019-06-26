@@ -17,12 +17,16 @@
 # Inherit device configuration
 $(call inherit-product, device/coolpad/c106/full_c106.mk)
 
-# Inherit some common LineageOS stuff.
-$(call inherit-product, vendor/lineage/config/common_full_phone.mk)
+# Inherit some common AOSIP stuff.
+$(call inherit-product, vendor/aosip/config/common_full_phone.mk)
+
+# Maintainer Prop
+PRODUCT_BUILD_PROP_OVERRIDES += \
+    DEVICE_MAINTAINERS="Mustafa Shaikh"
 
 ## Device identifier. This must come after all inclusions
 PRODUCT_DEVICE := c106
-PRODUCT_NAME := lineage_c106
+PRODUCT_NAME := aosip_c106
 PRODUCT_BRAND := LeEco
 PRODUCT_MANUFACTURER := LeMobile
 
