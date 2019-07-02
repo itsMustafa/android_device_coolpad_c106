@@ -1,15 +1,11 @@
-# android_device_coolpad_c103
-For building TWRP for coolpad cool 1 dual
+TWRP tree for c103
 
-To compile
+Full Compilation
 
-. build/envsetup.sh && lunch omni_c103-eng && make -j8 recoveryimage
+        $ source build/envsetup.sh
 
+        $ lunch omni_c103-eng
 
-## Device specifications
+        $ make clean
 
-| Device                  | Coolpad cool 1 dual                                         |
-| ----------------------- | :---------------------------------------------------------- |
-| SoC                     | Snapdragon 652                                              |
-| GPU                     | Adreno 510                                                  |
-| Memory                  | 3GB RAM                                                     |
+		$ make recoveryimage
