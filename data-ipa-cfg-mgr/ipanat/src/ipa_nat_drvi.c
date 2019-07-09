@@ -1202,4 +1202,1251 @@ uint16_t ipa_nati_generate_tbl_rule(const ipa_nat_ipv4_rule *clnt_rule,
 	expn_tbl = (struct ipa_nat_rule *)tbl_ptr->ipv4_expn_rules_addr;
 
 	/* copy the values from client rule to sw rule */
-	sw_rule-
+	sw_rule->private_ip = clnt_rule->private_ip;
+	sw_rule->private_port = clnt_rule->private_port;
+	sw_rule->protocol = clnt_rule->protocol;
+	sw_rule->public_port = clnt_rule->public_port;
+	sw_rule->target_ip = clnt_rule->target_ip;
+	sw_rule->target_port = clnt_rule->target_port;
+	sw_rule->pdn_index = clnt_rule->pdn_index;
+
+	/* consider only public and private ip fields */
+	sw_rule->ip_chksum = ipa_nati_calc_ip_cksum(pub_ip_addr,
+																							clnt_rule->private_ip);
+
+	if (IPPROTO_TCP == sw_rule->protocol ||
+			IPPROTO_UDP == sw_rule->protocol) {
+		/* consider public and private ip & port fields */
+		sw_rule->tcp_udp_chksum = ipa_nati_calc_tcp_udp_cksum(
+			 pub_ip_addr,
+			 clnt_rule->public_port,
+			 clnt_rule->private_ip,
+			 clnt_rule->private_port);
+	}
+
+	sw_rule->rsvd1 = 0;
+	sw_rule->enable = IPA_NAT_FLAG_DISABLE_BIT;
+	sw_rule->next_index = 0;
+
+	/*
+		SW sets this timer to 0.
+		The assumption is that 0 is an invalid clock value and no clock
+		wraparounds are expected
+	*/
+	sw_rule->time_stamp = 0;
+	sw_rule->rsvd2 = 0;
+	sw_rule->rsvd3 = 0;
+	sw_rule->prev_index = 0;
+	sw_rule->indx_tbl_entry = 0;
+
+	new_entry = dst_hash(pub_ip_addr, clnt_rule->target_ip,
+											 clnt_rule->target_port,
+											 clnt_rule->public_port,
+											 clnt_rule->protocol,
+											 tbl_ptr->table_entries-1);
+
+	/* check whether there is any collision
+		 if no collision return */
+	if (!Read16BitFieldValue(tbl[new_entry].ip_cksm_enbl,
+													 ENABLE_FIELD)) {
+		sw_rule->prev_index = 0;
+		IPADBG("Destination Nat New Entry Index %d\n", new_entry);
+		return new_entry;
+	}
+
+	/* First collision */
+	if (Read16BitFieldValue(tbl[new_entry].nxt_indx_pub_port,
+													NEXT_INDEX_FIELD) == IPA_NAT_INVALID_NAT_ENTRY) {
+		sw_rule->prev_index = new_entry;
+	} else { /* check for more than one collision	*/
+		/* Find the IPA_NAT_DEL_TYPE_LAST entry in list */
+		nxt_indx = Read16BitFieldValue(tbl[new_entry].nxt_indx_pub_port,
+																	 NEXT_INDEX_FIELD);
+
+		while (nxt_indx != IPA_NAT_INVALID_NAT_ENTRY) {
+			prev = nxt_indx;
+
+			nxt_indx -= tbl_ptr->table_entries;
+			nxt_indx = Read16BitFieldValue(expn_tbl[nxt_indx].nxt_indx_pub_port,
+																		 NEXT_INDEX_FIELD);
+
+			/* Handling error case */
+			if (prev == nxt_indx) {
+				IPAERR("Error: Prev index:%d and next:%d index should not be same\n", prev, nxt_indx);
+				return IPA_NAT_INVALID_NAT_ENTRY;
+			}
+		}
+
+		sw_rule->prev_index = prev;
+	}
+
+	/* On collision check for the free entry in expansion table */
+	new_entry = ipa_nati_expn_tbl_free_entry(expn_tbl,
+					tbl_ptr->expn_table_entries);
+
+	if (IPA_NAT_INVALID_NAT_ENTRY == new_entry) {
+		/* Expansion table is full return*/
+		IPAERR("Expansion table is full\n");
+		IPAERR("Current Table: %d & Expn Entries: %d\n",
+			   tbl_ptr->cur_tbl_cnt, tbl_ptr->cur_expn_tbl_cnt);
+		return IPA_NAT_INVALID_NAT_ENTRY;
+	}
+	new_entry += tbl_ptr->table_entries;
+
+	IPADBG("new entry index %d\n", new_entry);
+	return new_entry;
+}
+
+/* returns expn table entry index */
+uint16_t ipa_nati_expn_tbl_free_entry(struct ipa_nat_rule *expn_tbl,
+						uint16_t size)
+{
+	int cnt;
+
+	for (cnt = 1; cnt < size; cnt++) {
+		if (!Read16BitFieldValue(expn_tbl[cnt].ip_cksm_enbl,
+														 ENABLE_FIELD)) {
+			IPADBG("new expansion table entry index %d\n", cnt);
+			return cnt;
+		}
+	}
+
+	IPAERR("nat expansion table is full\n");
+	return 0;
+}
+
+uint16_t ipa_nati_generate_index_rule(const ipa_nat_ipv4_rule *clnt_rule,
+						struct ipa_nat_indx_tbl_sw_rule *sw_rule,
+						struct ipa_nat_ip4_table_cache *tbl_ptr)
+{
+	struct ipa_nat_indx_tbl_rule *indx_tbl, *indx_expn_tbl;
+	uint16_t prev = 0, nxt_indx = 0, new_entry;
+
+	indx_tbl =
+	(struct ipa_nat_indx_tbl_rule *)tbl_ptr->index_table_addr;
+	indx_expn_tbl =
+	(struct ipa_nat_indx_tbl_rule *)tbl_ptr->index_table_expn_addr;
+
+	new_entry = src_hash(clnt_rule->private_ip,
+											 clnt_rule->private_port,
+											 clnt_rule->target_ip,
+											 clnt_rule->target_port,
+											 clnt_rule->protocol,
+											 tbl_ptr->table_entries-1);
+
+	/* check whether there is any collision
+		 if no collision return */
+	if (!Read16BitFieldValue(indx_tbl[new_entry].tbl_entry_nxt_indx,
+													 INDX_TBL_TBL_ENTRY_FIELD)) {
+		sw_rule->prev_index = 0;
+		IPADBG("Source Nat Index Table Entry %d\n", new_entry);
+		return new_entry;
+	}
+
+	/* check for more than one collision	*/
+	if (Read16BitFieldValue(indx_tbl[new_entry].tbl_entry_nxt_indx,
+													INDX_TBL_NEXT_INDEX_FILED) == IPA_NAT_INVALID_NAT_ENTRY) {
+		sw_rule->prev_index = new_entry;
+		IPADBG("First collosion. Entry %d\n", new_entry);
+	} else {
+		/* Find the IPA_NAT_DEL_TYPE_LAST entry in list */
+		nxt_indx = Read16BitFieldValue(indx_tbl[new_entry].tbl_entry_nxt_indx,
+																	 INDX_TBL_NEXT_INDEX_FILED);
+
+		while (nxt_indx != IPA_NAT_INVALID_NAT_ENTRY) {
+			prev = nxt_indx;
+
+			nxt_indx -= tbl_ptr->table_entries;
+			nxt_indx = Read16BitFieldValue(indx_expn_tbl[nxt_indx].tbl_entry_nxt_indx,
+																		 INDX_TBL_NEXT_INDEX_FILED);
+
+			/* Handling error case */
+			if (prev == nxt_indx) {
+				IPAERR("Error: Prev:%d and next:%d index should not be same\n", prev, nxt_indx);
+				return IPA_NAT_INVALID_NAT_ENTRY;
+			}
+		}
+
+		sw_rule->prev_index = prev;
+	}
+
+	/* On collision check for the free entry in expansion table */
+	new_entry = ipa_nati_index_expn_get_free_entry(indx_expn_tbl,
+					tbl_ptr->expn_table_entries);
+
+	if (IPA_NAT_INVALID_NAT_ENTRY == new_entry) {
+		/* Expansion table is full return*/
+		IPAERR("Index expansion table is full\n");
+		IPAERR("Current Table: %d & Expn Entries: %d\n",
+			   tbl_ptr->cur_tbl_cnt, tbl_ptr->cur_expn_tbl_cnt);
+		return IPA_NAT_INVALID_NAT_ENTRY;
+	}
+	new_entry += tbl_ptr->table_entries;
+
+
+	if (sw_rule->prev_index == new_entry) {
+		IPAERR("Error: prev_entry:%d ", sw_rule->prev_index);
+		IPAERR("and new_entry:%d should not be same ", new_entry);
+		IPAERR("infinite loop detected\n");
+		return IPA_NAT_INVALID_NAT_ENTRY;
+	}
+
+	IPADBG("index table entry %d\n", new_entry);
+	return new_entry;
+}
+
+/* returns index expn table entry index */
+uint16_t ipa_nati_index_expn_get_free_entry(
+						struct ipa_nat_indx_tbl_rule *indx_tbl,
+						uint16_t size)
+{
+	int cnt;
+	for (cnt = 1; cnt < size; cnt++) {
+		if (!Read16BitFieldValue(indx_tbl[cnt].tbl_entry_nxt_indx,
+														 INDX_TBL_TBL_ENTRY_FIELD)) {
+			return cnt;
+		}
+	}
+
+	IPAERR("nat index expansion table is full\n");
+	return 0;
+}
+
+void ipa_nati_write_next_index(uint8_t tbl_indx,
+				nat_table_type tbl_type,
+				uint16_t value,
+				uint32_t offset)
+{
+	struct ipa_ioc_nat_dma_cmd *cmd;
+
+	IPADBG("Updating next index field of table %d on collosion using dma\n", tbl_type);
+	IPADBG("table index: %d, value: %d offset;%d\n", tbl_indx, value, offset);
+
+	cmd = (struct ipa_ioc_nat_dma_cmd *)
+	malloc(sizeof(struct ipa_ioc_nat_dma_cmd)+
+				 sizeof(struct ipa_ioc_nat_dma_one));
+	if (NULL == cmd) {
+		IPAERR("unable to allocate memory\n");
+		return;
+	}
+
+	cmd->dma[0].table_index = tbl_indx;
+	cmd->dma[0].base_addr = tbl_type;
+	cmd->dma[0].data = value;
+	cmd->dma[0].offset = offset;
+
+	cmd->entries = 1;
+	if (ioctl(ipv4_nat_cache.ipa_fd, IPA_IOC_NAT_DMA, cmd)) {
+		perror("ipa_nati_post_ipv4_dma_cmd(): ioctl error value");
+		IPAERR("unable to call dma icotl to update next index\n");
+		IPAERR("ipa fd %d\n", ipv4_nat_cache.ipa_fd);
+		goto fail;
+	}
+
+fail:
+	free(cmd);
+
+	return;
+}
+
+void ipa_nati_copy_ipv4_rule_to_hw(
+				struct ipa_nat_ip4_table_cache *ipv4_cache,
+				struct ipa_nat_sw_rule *rule,
+				uint16_t entry, uint8_t tbl_index)
+{
+	struct ipa_nat_rule *tbl_ptr;
+	uint16_t prev_entry = rule->prev_index;
+	nat_table_type tbl_type;
+	uint32_t offset = 0;
+
+	if (entry < ipv4_cache->table_entries) {
+		tbl_ptr = (struct ipa_nat_rule *)ipv4_cache->ipv4_rules_addr;
+
+		memcpy(&tbl_ptr[entry],
+					 rule,
+					 sizeof(struct ipa_nat_rule));
+	} else {
+		tbl_ptr = (struct ipa_nat_rule *)ipv4_cache->ipv4_expn_rules_addr;
+		memcpy(&tbl_ptr[entry - ipv4_cache->table_entries],
+					 rule,
+					 sizeof(struct ipa_nat_rule));
+	}
+
+	/* Update the previos entry next_index */
+	if (IPA_NAT_INVALID_NAT_ENTRY != prev_entry) {
+
+		if (prev_entry < ipv4_cache->table_entries) {
+			tbl_type = IPA_NAT_BASE_TBL;
+			tbl_ptr = (struct ipa_nat_rule *)ipv4_cache->ipv4_rules_addr;
+		} else {
+			tbl_type = IPA_NAT_EXPN_TBL;
+			/* tbp_ptr is already pointing to expansion table
+				 no need to initialize it */
+			prev_entry = prev_entry - ipv4_cache->table_entries;
+		}
+
+		offset = ipa_nati_get_entry_offset(ipv4_cache, tbl_type, prev_entry);
+		offset += IPA_NAT_RULE_NEXT_FIELD_OFFSET;
+
+		ipa_nati_write_next_index(tbl_index, tbl_type, entry, offset);
+	}
+
+	return;
+}
+
+void ipa_nati_copy_ipv4_index_rule_to_hw(
+				struct ipa_nat_ip4_table_cache *ipv4_cache,
+				struct ipa_nat_indx_tbl_sw_rule *indx_sw_rule,
+				uint16_t entry,
+				uint8_t tbl_index)
+{
+	struct ipa_nat_indx_tbl_rule *tbl_ptr;
+	struct ipa_nat_sw_indx_tbl_rule sw_rule;
+	uint16_t prev_entry = indx_sw_rule->prev_index;
+	nat_table_type tbl_type;
+	uint16_t offset = 0;
+
+	sw_rule.next_index = indx_sw_rule->next_index;
+	sw_rule.tbl_entry = indx_sw_rule->tbl_entry;
+
+	if (entry < ipv4_cache->table_entries) {
+		tbl_ptr = (struct ipa_nat_indx_tbl_rule *)ipv4_cache->index_table_addr;
+
+		memcpy(&tbl_ptr[entry],
+					 &sw_rule,
+					 sizeof(struct ipa_nat_indx_tbl_rule));
+	} else {
+		tbl_ptr = (struct ipa_nat_indx_tbl_rule *)ipv4_cache->index_table_expn_addr;
+
+		memcpy(&tbl_ptr[entry - ipv4_cache->table_entries],
+					 &sw_rule,
+					 sizeof(struct ipa_nat_indx_tbl_rule));
+	}
+
+	/* Update the next field of previous entry on collosion */
+	if (IPA_NAT_INVALID_NAT_ENTRY != prev_entry) {
+		if (prev_entry < ipv4_cache->table_entries) {
+			tbl_type = IPA_NAT_INDX_TBL;
+			tbl_ptr = (struct ipa_nat_indx_tbl_rule *)ipv4_cache->index_table_addr;
+		} else {
+			tbl_type = IPA_NAT_INDEX_EXPN_TBL;
+			/* tbp_ptr is already pointing to expansion table
+			 no need to initialize it */
+			prev_entry = prev_entry - ipv4_cache->table_entries;
+		}
+
+		offset = ipa_nati_get_index_entry_offset(ipv4_cache, tbl_type, prev_entry);
+		offset += IPA_NAT_INDEX_RULE_NEXT_FIELD_OFFSET;
+
+		IPADBG("Updating next index field of index table on collosion using dma()\n");
+		ipa_nati_write_next_index(tbl_index, tbl_type, entry, offset);
+	}
+
+	return;
+}
+
+int ipa_nati_post_ipv4_dma_cmd(uint8_t tbl_indx,
+				uint16_t entry)
+{
+	struct ipa_ioc_nat_dma_cmd *cmd;
+	struct ipa_nat_rule *tbl_ptr;
+	uint32_t offset = ipv4_nat_cache.ip4_tbl[tbl_indx].tbl_addr_offset;
+	int ret = 0;
+
+	cmd = (struct ipa_ioc_nat_dma_cmd *)
+	malloc(sizeof(struct ipa_ioc_nat_dma_cmd)+
+				 sizeof(struct ipa_ioc_nat_dma_one));
+	if (NULL == cmd) {
+		IPAERR("unable to allocate memory\n");
+		return -ENOMEM;
+	}
+
+	if (entry < ipv4_nat_cache.ip4_tbl[tbl_indx].table_entries) {
+		tbl_ptr =
+			 (struct ipa_nat_rule *)ipv4_nat_cache.ip4_tbl[tbl_indx].ipv4_rules_addr;
+
+		cmd->dma[0].table_index = tbl_indx;
+		cmd->dma[0].base_addr = IPA_NAT_BASE_TBL;
+		cmd->dma[0].data = IPA_NAT_FLAG_ENABLE_BIT_MASK;
+
+		cmd->dma[0].offset = (char *)&tbl_ptr[entry] - (char *)tbl_ptr;
+		cmd->dma[0].offset += IPA_NAT_RULE_FLAG_FIELD_OFFSET;
+	} else {
+		tbl_ptr =
+			 (struct ipa_nat_rule *)ipv4_nat_cache.ip4_tbl[tbl_indx].ipv4_expn_rules_addr;
+		entry = entry - ipv4_nat_cache.ip4_tbl[tbl_indx].table_entries;
+
+		cmd->dma[0].table_index = tbl_indx;
+		cmd->dma[0].base_addr = IPA_NAT_EXPN_TBL;
+		cmd->dma[0].data = IPA_NAT_FLAG_ENABLE_BIT_MASK;
+
+		cmd->dma[0].offset = (char *)&tbl_ptr[entry] - (char *)tbl_ptr;
+		cmd->dma[0].offset += IPA_NAT_RULE_FLAG_FIELD_OFFSET;
+		cmd->dma[0].offset += offset;
+	}
+
+	cmd->entries = 1;
+	if (ioctl(ipv4_nat_cache.ipa_fd, IPA_IOC_NAT_DMA, cmd)) {
+		perror("ipa_nati_post_ipv4_dma_cmd(): ioctl error value");
+		IPAERR("unable to call dma icotl\n");
+		IPADBG("ipa fd %d\n", ipv4_nat_cache.ipa_fd);
+		ret = -EIO;
+		goto fail;
+	}
+	IPADBG("posted IPA_IOC_NAT_DMA to kernel successfully during add operation\n");
+
+
+fail:
+	free(cmd);
+
+	return ret;
+}
+
+
+int ipa_nati_del_ipv4_rule(uint32_t tbl_hdl,
+				uint32_t rule_hdl)
+{
+	uint8_t expn_tbl;
+	uint16_t tbl_entry;
+	struct ipa_nat_ip4_table_cache *tbl_ptr;
+	del_type rule_pos;
+	uint8_t tbl_indx = (uint8_t)(tbl_hdl - 1);
+	int ret;
+
+	/* Parse the rule handle */
+	ipa_nati_parse_ipv4_rule_hdl(tbl_indx, (uint16_t)rule_hdl,
+															 &expn_tbl, &tbl_entry);
+	if (IPA_NAT_INVALID_NAT_ENTRY == tbl_entry) {
+		IPAERR("Invalid Rule Entry\n");
+		ret = -EINVAL;
+		goto fail;
+	}
+
+	if (pthread_mutex_lock(&nat_mutex) != 0) {
+		ret = -1;
+		goto mutex_lock_error;
+	}
+
+	IPADBG("Delete below rule\n");
+	IPADBG("tbl_entry:%d expn_tbl:%d\n", tbl_entry, expn_tbl);
+
+	tbl_ptr = &ipv4_nat_cache.ip4_tbl[tbl_indx];
+	if (!tbl_ptr->valid) {
+		IPAERR("invalid table handle\n");
+		ret = -EINVAL;
+		if (pthread_mutex_unlock(&nat_mutex) != 0)
+			goto mutex_unlock_error;
+		goto fail;
+	}
+
+	ipa_nati_find_rule_pos(tbl_ptr, expn_tbl,
+												 tbl_entry, &rule_pos);
+	IPADBG("rule_pos:%d\n", rule_pos);
+
+	if (ipa_nati_post_del_dma_cmd(tbl_indx, tbl_entry,
+					expn_tbl, rule_pos)) {
+		ret = -EINVAL;
+		if (pthread_mutex_unlock(&nat_mutex) != 0)
+			goto mutex_unlock_error;
+		goto fail;
+	}
+
+	ipa_nati_del_dead_ipv4_head_nodes(tbl_indx);
+
+	/* Reset rule_id_array entry */
+	ipv4_nat_cache.ip4_tbl[tbl_indx].rule_id_array[rule_hdl-1] =
+	IPA_NAT_INVALID_NAT_ENTRY;
+
+#ifdef NAT_DUMP
+	IPADBG("Dumping Table after deleting rule\n");
+	ipa_nat_dump_ipv4_table(tbl_hdl);
+#endif
+
+	if (pthread_mutex_unlock(&nat_mutex) != 0) {
+		ret = -1;
+		goto mutex_unlock_error;
+	}
+
+	return 0;
+
+mutex_lock_error:
+	IPAERR("unable to lock the nat mutex\n");
+	return ret;
+
+mutex_unlock_error:
+	IPAERR("unable to unlock the nat mutex\n");
+
+fail:
+	return ret;
+}
+
+void ReorderCmds(struct ipa_ioc_nat_dma_cmd *cmd, int size)
+{
+	int indx_tbl_start = 0, cnt, cnt1;
+	struct ipa_ioc_nat_dma_cmd *tmp;
+
+	IPADBG("called ReorderCmds() with entries :%d\n", cmd->entries);
+
+	for (cnt = 0; cnt < cmd->entries; cnt++) {
+		if (cmd->dma[cnt].base_addr == IPA_NAT_INDX_TBL ||
+				cmd->dma[cnt].base_addr == IPA_NAT_INDEX_EXPN_TBL) {
+			indx_tbl_start = cnt;
+			break;
+		}
+	}
+
+	if (indx_tbl_start == 0) {
+		IPADBG("Reorder not needed\n");
+		return;
+	}
+
+	tmp = (struct ipa_ioc_nat_dma_cmd *)malloc(size);
+	if (tmp == NULL) {
+		IPAERR("unable to allocate memory\n");
+		return;
+	}
+
+	cnt1 = 0;
+	tmp->entries = cmd->entries;
+	for (cnt = indx_tbl_start; cnt < cmd->entries; cnt++) {
+		tmp->dma[cnt1] = cmd->dma[cnt];
+		cnt1++;
+	}
+
+	for (cnt = 0; cnt < indx_tbl_start; cnt++) {
+		tmp->dma[cnt1] = cmd->dma[cnt];
+		cnt1++;
+	}
+
+	memset(cmd, 0, size);
+	memcpy(cmd, tmp, size);
+	free(tmp);
+
+	return;
+}
+
+int ipa_nati_post_del_dma_cmd(uint8_t tbl_indx,
+				uint16_t cur_tbl_entry,
+				uint8_t expn_tbl,
+				del_type rule_pos)
+{
+
+#define MAX_DMA_ENTRIES_FOR_DEL 3
+
+	struct ipa_nat_ip4_table_cache *cache_ptr;
+	struct ipa_nat_indx_tbl_rule *indx_tbl_ptr;
+	struct ipa_nat_rule *tbl_ptr;
+	int ret = 0, size = 0;
+
+	uint16_t indx_tbl_entry = IPA_NAT_INVALID_NAT_ENTRY;
+	del_type indx_rule_pos;
+
+	struct ipa_ioc_nat_dma_cmd *cmd;
+	uint8_t no_of_cmds = 0;
+
+	uint16_t prev_entry = IPA_NAT_INVALID_NAT_ENTRY;
+	uint16_t next_entry = IPA_NAT_INVALID_NAT_ENTRY;
+	uint16_t indx_next_entry = IPA_NAT_INVALID_NAT_ENTRY;
+	uint16_t indx_next_next_entry = IPA_NAT_INVALID_NAT_ENTRY;
+	uint16_t table_entry;
+
+	size = sizeof(struct ipa_ioc_nat_dma_cmd)+
+	(MAX_DMA_ENTRIES_FOR_DEL * sizeof(struct ipa_ioc_nat_dma_one));
+
+	cmd = (struct ipa_ioc_nat_dma_cmd *)malloc(size);
+	if (NULL == cmd) {
+		IPAERR("unable to allocate memory\n");
+		return -ENOMEM;
+	}
+
+	cache_ptr = &ipv4_nat_cache.ip4_tbl[tbl_indx];
+	if (!expn_tbl) {
+		tbl_ptr = (struct ipa_nat_rule *)cache_ptr->ipv4_rules_addr;
+	} else {
+		tbl_ptr = (struct ipa_nat_rule *)cache_ptr->ipv4_expn_rules_addr;
+	}
+
+
+	if (!Read16BitFieldValue(tbl_ptr[cur_tbl_entry].ip_cksm_enbl,
+													 ENABLE_FIELD)) {
+		IPAERR("Deleting invalid(not enabled) rule\n");
+		ret = -EINVAL;
+		goto fail;
+	}
+
+	indx_tbl_entry =
+		Read16BitFieldValue(tbl_ptr[cur_tbl_entry].sw_spec_params,
+		SW_SPEC_PARAM_INDX_TBL_ENTRY_FIELD);
+
+	/* ================================================
+	 Base Table rule Deletion
+	 ================================================*/
+	/* Just delete the current rule by disabling the flag field */
+	if (IPA_NAT_DEL_TYPE_ONLY_ONE == rule_pos) {
+		cmd->dma[no_of_cmds].table_index = tbl_indx;
+		cmd->dma[no_of_cmds].base_addr = IPA_NAT_BASE_TBL;
+		cmd->dma[no_of_cmds].data = IPA_NAT_FLAG_DISABLE_BIT_MASK;
+
+		cmd->dma[no_of_cmds].offset =
+			 ipa_nati_get_entry_offset(cache_ptr,
+					cmd->dma[no_of_cmds].base_addr,
+					cur_tbl_entry);
+		cmd->dma[no_of_cmds].offset += IPA_NAT_RULE_FLAG_FIELD_OFFSET;
+	}
+
+	/* Just update the protocol field to invalid */
+	else if (IPA_NAT_DEL_TYPE_HEAD == rule_pos) {
+		cmd->dma[no_of_cmds].table_index = tbl_indx;
+		cmd->dma[no_of_cmds].base_addr = IPA_NAT_BASE_TBL;
+		cmd->dma[no_of_cmds].data = IPA_NAT_INVALID_PROTO_FIELD_VALUE;
+
+		cmd->dma[no_of_cmds].offset =
+			 ipa_nati_get_entry_offset(cache_ptr,
+					cmd->dma[no_of_cmds].base_addr,
+					cur_tbl_entry);
+		cmd->dma[no_of_cmds].offset += IPA_NAT_RULE_PROTO_FIELD_OFFSET;
+
+		IPADBG("writing invalid proto: 0x%x\n", cmd->dma[no_of_cmds].data);
+	}
+
+	/*
+			 Update the previous entry of next_index field value
+			 with current entry next_index field value
+	*/
+	else if (IPA_NAT_DEL_TYPE_MIDDLE == rule_pos) {
+		prev_entry =
+			Read16BitFieldValue(tbl_ptr[cur_tbl_entry].sw_spec_params,
+				SW_SPEC_PARAM_PREV_INDEX_FIELD);
+
+		cmd->dma[no_of_cmds].table_index = tbl_indx;
+		cmd->dma[no_of_cmds].data =
+			Read16BitFieldValue(tbl_ptr[cur_tbl_entry].nxt_indx_pub_port,
+					NEXT_INDEX_FIELD);
+
+		cmd->dma[no_of_cmds].base_addr = IPA_NAT_BASE_TBL;
+		if (prev_entry >= cache_ptr->table_entries) {
+			cmd->dma[no_of_cmds].base_addr = IPA_NAT_EXPN_TBL;
+			prev_entry -= cache_ptr->table_entries;
+		}
+
+		cmd->dma[no_of_cmds].offset =
+			ipa_nati_get_entry_offset(cache_ptr,
+				cmd->dma[no_of_cmds].base_addr, prev_entry);
+
+		cmd->dma[no_of_cmds].offset += IPA_NAT_RULE_NEXT_FIELD_OFFSET;
+	}
+
+	/*
+			 Reset the previous entry of next_index field with 0
+	*/
+	else if (IPA_NAT_DEL_TYPE_LAST == rule_pos) {
+		prev_entry =
+			Read16BitFieldValue(tbl_ptr[cur_tbl_entry].sw_spec_params,
+				SW_SPEC_PARAM_PREV_INDEX_FIELD);
+
+		cmd->dma[no_of_cmds].table_index = tbl_indx;
+		cmd->dma[no_of_cmds].data = IPA_NAT_INVALID_NAT_ENTRY;
+
+		cmd->dma[no_of_cmds].base_addr = IPA_NAT_BASE_TBL;
+		if (prev_entry >= cache_ptr->table_entries) {
+			cmd->dma[no_of_cmds].base_addr = IPA_NAT_EXPN_TBL;
+			prev_entry -= cache_ptr->table_entries;
+		}
+
+		cmd->dma[no_of_cmds].offset =
+			ipa_nati_get_entry_offset(cache_ptr,
+				cmd->dma[no_of_cmds].base_addr, prev_entry);
+
+		cmd->dma[no_of_cmds].offset += IPA_NAT_RULE_NEXT_FIELD_OFFSET;
+	}
+
+	/* ================================================
+	 Base Table rule Deletion End
+	 ================================================*/
+
+	/* ================================================
+	 Index Table rule Deletion
+	 ================================================*/
+	ipa_nati_find_index_rule_pos(cache_ptr,
+															 indx_tbl_entry,
+															 &indx_rule_pos);
+	IPADBG("Index table entry: 0x%x\n", indx_tbl_entry);
+	IPADBG("and position: %d\n", indx_rule_pos);
+	if (indx_tbl_entry >= cache_ptr->table_entries) {
+		indx_tbl_entry -= cache_ptr->table_entries;
+		indx_tbl_ptr =
+			 (struct ipa_nat_indx_tbl_rule *)cache_ptr->index_table_expn_addr;
+	} else {
+		indx_tbl_ptr =
+			 (struct ipa_nat_indx_tbl_rule *)cache_ptr->index_table_addr;
+	}
+
+	/* Just delete the current rule by resetting nat_table_index field to 0 */
+	if (IPA_NAT_DEL_TYPE_ONLY_ONE == indx_rule_pos) {
+		no_of_cmds++;
+		cmd->dma[no_of_cmds].base_addr = IPA_NAT_INDX_TBL;
+		cmd->dma[no_of_cmds].table_index = tbl_indx;
+		cmd->dma[no_of_cmds].data = IPA_NAT_INVALID_NAT_ENTRY;
+
+		cmd->dma[no_of_cmds].offset =
+			ipa_nati_get_index_entry_offset(cache_ptr,
+			cmd->dma[no_of_cmds].base_addr,
+			indx_tbl_entry);
+
+		cmd->dma[no_of_cmds].offset +=
+			IPA_NAT_INDEX_RULE_NAT_INDEX_FIELD_OFFSET;
+	}
+
+	/* copy the next entry values to current entry */
+	else if (IPA_NAT_DEL_TYPE_HEAD == indx_rule_pos) {
+		next_entry =
+			Read16BitFieldValue(indx_tbl_ptr[indx_tbl_entry].tbl_entry_nxt_indx,
+				INDX_TBL_NEXT_INDEX_FILED);
+
+		next_entry -= cache_ptr->table_entries;
+
+		no_of_cmds++;
+		cmd->dma[no_of_cmds].base_addr = IPA_NAT_INDX_TBL;
+		cmd->dma[no_of_cmds].table_index = tbl_indx;
+
+		/* Copy the nat_table_index field value of next entry */
+		indx_tbl_ptr =
+			 (struct ipa_nat_indx_tbl_rule *)cache_ptr->index_table_expn_addr;
+		cmd->dma[no_of_cmds].data =
+			Read16BitFieldValue(indx_tbl_ptr[next_entry].tbl_entry_nxt_indx,
+				INDX_TBL_TBL_ENTRY_FIELD);
+
+		cmd->dma[no_of_cmds].offset =
+			ipa_nati_get_index_entry_offset(cache_ptr,
+					cmd->dma[no_of_cmds].base_addr,
+					indx_tbl_entry);
+
+		cmd->dma[no_of_cmds].offset +=
+			IPA_NAT_INDEX_RULE_NAT_INDEX_FIELD_OFFSET;
+
+		/* Copy the next_index field value of next entry */
+		no_of_cmds++;
+		cmd->dma[no_of_cmds].base_addr = IPA_NAT_INDX_TBL;
+		cmd->dma[no_of_cmds].table_index = tbl_indx;
+		cmd->dma[no_of_cmds].data =
+			Read16BitFieldValue(indx_tbl_ptr[next_entry].tbl_entry_nxt_indx,
+				INDX_TBL_NEXT_INDEX_FILED);
+
+		cmd->dma[no_of_cmds].offset =
+			ipa_nati_get_index_entry_offset(cache_ptr,
+				cmd->dma[no_of_cmds].base_addr, indx_tbl_entry);
+
+		cmd->dma[no_of_cmds].offset +=
+			IPA_NAT_INDEX_RULE_NEXT_FIELD_OFFSET;
+		indx_next_entry = next_entry;
+	}
+
+	/*
+			 Update the previous entry of next_index field value
+			 with current entry next_index field value
+	*/
+	else if (IPA_NAT_DEL_TYPE_MIDDLE == indx_rule_pos) {
+		prev_entry = cache_ptr->index_expn_table_meta[indx_tbl_entry].prev_index;
+
+		no_of_cmds++;
+		cmd->dma[no_of_cmds].table_index = tbl_indx;
+		cmd->dma[no_of_cmds].data =
+			Read16BitFieldValue(indx_tbl_ptr[indx_tbl_entry].tbl_entry_nxt_indx,
+				INDX_TBL_NEXT_INDEX_FILED);
+
+		cmd->dma[no_of_cmds].base_addr = IPA_NAT_INDX_TBL;
+		if (prev_entry >= cache_ptr->table_entries) {
+			cmd->dma[no_of_cmds].base_addr = IPA_NAT_INDEX_EXPN_TBL;
+			prev_entry -= cache_ptr->table_entries;
+		}
+
+		IPADBG("prev_entry: %d update with cur next_index: %d\n",
+				prev_entry, cmd->dma[no_of_cmds].data);
+		IPADBG("prev_entry: %d exist in table_type:%d\n",
+				prev_entry, cmd->dma[no_of_cmds].base_addr);
+
+		cmd->dma[no_of_cmds].offset =
+			ipa_nati_get_index_entry_offset(cache_ptr,
+				cmd->dma[no_of_cmds].base_addr, prev_entry);
+
+		cmd->dma[no_of_cmds].offset +=
+			IPA_NAT_INDEX_RULE_NEXT_FIELD_OFFSET;
+	}
+
+	/* Reset the previous entry next_index field with 0 */
+	else if (IPA_NAT_DEL_TYPE_LAST == indx_rule_pos) {
+		prev_entry = cache_ptr->index_expn_table_meta[indx_tbl_entry].prev_index;
+
+		no_of_cmds++;
+		cmd->dma[no_of_cmds].table_index = tbl_indx;
+		cmd->dma[no_of_cmds].data = IPA_NAT_INVALID_NAT_ENTRY;
+
+		cmd->dma[no_of_cmds].base_addr = IPA_NAT_INDX_TBL;
+		if (prev_entry >= cache_ptr->table_entries) {
+			cmd->dma[no_of_cmds].base_addr = IPA_NAT_INDEX_EXPN_TBL;
+			prev_entry -= cache_ptr->table_entries;
+		}
+
+		IPADBG("Reseting prev_entry: %d next_index\n", prev_entry);
+		IPADBG("prev_entry: %d exist in table_type:%d\n",
+			prev_entry, cmd->dma[no_of_cmds].base_addr);
+
+		cmd->dma[no_of_cmds].offset =
+			 ipa_nati_get_index_entry_offset(cache_ptr,
+					cmd->dma[no_of_cmds].base_addr, prev_entry);
+
+		cmd->dma[no_of_cmds].offset +=
+			IPA_NAT_INDEX_RULE_NEXT_FIELD_OFFSET;
+	}
+
+	/* ================================================
+	 Index Table rule Deletion End
+	 ================================================*/
+	cmd->entries = no_of_cmds + 1;
+
+	if (cmd->entries > 1) {
+		ReorderCmds(cmd, size);
+	}
+	if (ioctl(ipv4_nat_cache.ipa_fd, IPA_IOC_NAT_DMA, cmd)) {
+		perror("ipa_nati_post_del_dma_cmd(): ioctl error value");
+		IPAERR("unable to post cmd\n");
+		IPADBG("ipa fd %d\n", ipv4_nat_cache.ipa_fd);
+		ret = -EIO;
+		goto fail;
+	}
+
+	/* if entry exist in IPA_NAT_DEL_TYPE_MIDDLE of list
+			 Update the previous entry in sw specific parameters
+	*/
+	if (IPA_NAT_DEL_TYPE_MIDDLE == rule_pos) {
+		/* Retrieve the current entry prev_entry value */
+		prev_entry =
+			Read16BitFieldValue(tbl_ptr[cur_tbl_entry].sw_spec_params,
+				SW_SPEC_PARAM_PREV_INDEX_FIELD);
+
+		/* Retrieve the next entry */
+		next_entry =
+			Read16BitFieldValue(tbl_ptr[cur_tbl_entry].nxt_indx_pub_port,
+				NEXT_INDEX_FIELD);
+
+		next_entry -= cache_ptr->table_entries;
+		tbl_ptr = (struct ipa_nat_rule *)cache_ptr->ipv4_expn_rules_addr;
+
+		/* copy the current entry prev_entry value to next entry*/
+		UpdateSwSpecParams(&tbl_ptr[next_entry],
+											 IPA_NAT_SW_PARAM_PREV_INDX_BYTE,
+											 prev_entry);
+	}
+
+	/* Reset the other field values of current delete entry
+			 In case of IPA_NAT_DEL_TYPE_HEAD, don't reset */
+	if (IPA_NAT_DEL_TYPE_HEAD != rule_pos) {
+		memset(&tbl_ptr[cur_tbl_entry], 0, sizeof(struct ipa_nat_rule));
+	}
+
+	if (indx_rule_pos == IPA_NAT_DEL_TYPE_HEAD) {
+
+    /* Update next next entry previous value to current
+       entry as we moved the next entry values
+       to current entry */
+		indx_next_next_entry =
+			Read16BitFieldValue(indx_tbl_ptr[indx_next_entry].tbl_entry_nxt_indx,
+				INDX_TBL_NEXT_INDEX_FILED);
+
+		if (indx_next_next_entry != 0 &&
+			indx_next_next_entry >= cache_ptr->table_entries) {
+
+			IPADBG("Next Next entry: %d\n", indx_next_next_entry);
+			indx_next_next_entry -= cache_ptr->table_entries;
+
+			IPADBG("Updating entry: %d prev index to: %d\n",
+				indx_next_next_entry, indx_tbl_entry);
+			cache_ptr->index_expn_table_meta[indx_next_next_entry].prev_index =
+				 indx_tbl_entry;
+		}
+
+    /* Now reset the next entry as we copied
+				the next entry to current entry */
+		IPADBG("Resetting, index table entry(Proper): %d\n",
+			(cache_ptr->table_entries + indx_next_entry));
+
+    /* This resets both table entry and next index values */
+		indx_tbl_ptr[indx_next_entry].tbl_entry_nxt_indx = 0;
+
+		/*
+				 In case of IPA_NAT_DEL_TYPE_HEAD, update the sw specific parameters
+				 (index table entry) of base table entry
+		*/
+		indx_tbl_ptr =
+			 (struct ipa_nat_indx_tbl_rule *)cache_ptr->index_table_addr;
+		table_entry =
+				Read16BitFieldValue(indx_tbl_ptr[indx_tbl_entry].tbl_entry_nxt_indx,
+						INDX_TBL_TBL_ENTRY_FIELD);
+
+		if (table_entry >= cache_ptr->table_entries) {
+			tbl_ptr = (struct ipa_nat_rule *)cache_ptr->ipv4_expn_rules_addr;
+			table_entry -= cache_ptr->table_entries;
+		} else {
+			tbl_ptr = (struct ipa_nat_rule *)cache_ptr->ipv4_rules_addr;
+		}
+
+		UpdateSwSpecParams(&tbl_ptr[table_entry],
+				IPA_NAT_SW_PARAM_INDX_TBL_ENTRY_BYTE,
+				indx_tbl_entry);
+	} else {
+		/* Update the prev_entry value (in index_expn_table_meta)
+				 for the next_entry in list with current entry prev_entry value
+		*/
+		if (IPA_NAT_DEL_TYPE_MIDDLE == indx_rule_pos) {
+			next_entry =
+				Read16BitFieldValue(indx_tbl_ptr[indx_tbl_entry].tbl_entry_nxt_indx,
+					INDX_TBL_NEXT_INDEX_FILED);
+
+			if (next_entry >= cache_ptr->table_entries) {
+				next_entry -= cache_ptr->table_entries;
+			}
+
+			cache_ptr->index_expn_table_meta[next_entry].prev_index =
+				 cache_ptr->index_expn_table_meta[indx_tbl_entry].prev_index;
+
+			cache_ptr->index_expn_table_meta[indx_tbl_entry].prev_index =
+				 IPA_NAT_INVALID_NAT_ENTRY;
+		}
+
+		IPADBG("At, indx_tbl_entry value: %d\n", indx_tbl_entry);
+		IPADBG("At, indx_tbl_entry member address: %p\n",
+					 &indx_tbl_ptr[indx_tbl_entry].tbl_entry_nxt_indx);
+
+		indx_tbl_ptr[indx_tbl_entry].tbl_entry_nxt_indx = 0;
+
+	}
+
+fail:
+	free(cmd);
+
+	return ret;
+}
+
+void ipa_nati_find_index_rule_pos(
+				struct ipa_nat_ip4_table_cache *cache_ptr,
+				uint16_t tbl_entry,
+				del_type *rule_pos)
+{
+	struct ipa_nat_indx_tbl_rule *tbl_ptr;
+
+	if (tbl_entry >= cache_ptr->table_entries) {
+		tbl_ptr =
+			 (struct ipa_nat_indx_tbl_rule *)cache_ptr->index_table_expn_addr;
+
+		tbl_entry -= cache_ptr->table_entries;
+		if (Read16BitFieldValue(tbl_ptr[tbl_entry].tbl_entry_nxt_indx,
+					INDX_TBL_NEXT_INDEX_FILED) == IPA_NAT_INVALID_NAT_ENTRY) {
+			*rule_pos = IPA_NAT_DEL_TYPE_LAST;
+		} else {
+			*rule_pos = IPA_NAT_DEL_TYPE_MIDDLE;
+		}
+	} else {
+		tbl_ptr =
+			 (struct ipa_nat_indx_tbl_rule *)cache_ptr->index_table_addr;
+
+		if (Read16BitFieldValue(tbl_ptr[tbl_entry].tbl_entry_nxt_indx,
+					INDX_TBL_NEXT_INDEX_FILED) == IPA_NAT_INVALID_NAT_ENTRY) {
+			*rule_pos = IPA_NAT_DEL_TYPE_ONLY_ONE;
+		} else {
+			*rule_pos = IPA_NAT_DEL_TYPE_HEAD;
+		}
+	}
+}
+
+void ipa_nati_find_rule_pos(struct ipa_nat_ip4_table_cache *cache_ptr,
+														uint8_t expn_tbl,
+														uint16_t tbl_entry,
+														del_type *rule_pos)
+{
+	struct ipa_nat_rule *tbl_ptr;
+
+	if (expn_tbl) {
+		tbl_ptr = (struct ipa_nat_rule *)cache_ptr->ipv4_expn_rules_addr;
+		if (Read16BitFieldValue(tbl_ptr[tbl_entry].nxt_indx_pub_port,
+														NEXT_INDEX_FIELD) == IPA_NAT_INVALID_NAT_ENTRY) {
+			*rule_pos = IPA_NAT_DEL_TYPE_LAST;
+		} else {
+			*rule_pos = IPA_NAT_DEL_TYPE_MIDDLE;
+		}
+	} else {
+		tbl_ptr = (struct ipa_nat_rule *)cache_ptr->ipv4_rules_addr;
+		if (Read16BitFieldValue(tbl_ptr[tbl_entry].nxt_indx_pub_port,
+					NEXT_INDEX_FIELD) == IPA_NAT_INVALID_NAT_ENTRY) {
+			*rule_pos = IPA_NAT_DEL_TYPE_ONLY_ONE;
+		} else {
+			*rule_pos = IPA_NAT_DEL_TYPE_HEAD;
+		}
+	}
+}
+
+void ipa_nati_del_dead_ipv4_head_nodes(uint8_t tbl_indx)
+{
+	struct ipa_nat_rule *tbl_ptr;
+	uint16_t cnt;
+
+	tbl_ptr =
+	(struct ipa_nat_rule *)ipv4_nat_cache.ip4_tbl[tbl_indx].ipv4_rules_addr;
+
+	for (cnt = 0;
+			 cnt < ipv4_nat_cache.ip4_tbl[tbl_indx].table_entries;
+			 cnt++) {
+
+		if (Read8BitFieldValue(tbl_ptr[cnt].ts_proto,
+					PROTOCOL_FIELD) == IPA_NAT_INVALID_PROTO_FIELD_CMP
+				&&
+				Read16BitFieldValue(tbl_ptr[cnt].nxt_indx_pub_port,
+					NEXT_INDEX_FIELD) == IPA_NAT_INVALID_NAT_ENTRY) {
+			/* Delete the IPA_NAT_DEL_TYPE_HEAD node */
+			IPADBG("deleting the dead node 0x%x\n", cnt);
+			memset(&tbl_ptr[cnt], 0, sizeof(struct ipa_nat_rule));
+		}
+	} /* end of for loop */
+
+	return;
+}
+
+
+/* ========================================================
+						Debug functions
+	 ========================================================*/
+#ifdef NAT_DUMP
+void ipa_nat_dump_ipv4_table(uint32_t tbl_hdl)
+{
+	struct ipa_nat_rule *tbl_ptr;
+	struct ipa_nat_indx_tbl_rule *indx_tbl_ptr;
+	int cnt;
+	uint8_t atl_one = 0;
+
+	if (IPA_NAT_INVALID_NAT_ENTRY == tbl_hdl ||
+			tbl_hdl > IPA_NAT_MAX_IP4_TBLS) {
+		IPAERR("invalid table handle passed\n");
+		return;
+	}
+
+	/* Print ipv4 rules */
+	IPADBG("Dumping ipv4 active rules:\n");
+	tbl_ptr = (struct ipa_nat_rule *)
+	ipv4_nat_cache.ip4_tbl[tbl_hdl-1].ipv4_rules_addr;
+	for (cnt = 0;
+			 cnt < ipv4_nat_cache.ip4_tbl[tbl_hdl - 1].table_entries;
+			 cnt++) {
+		if (Read16BitFieldValue(tbl_ptr[cnt].ip_cksm_enbl,
+					ENABLE_FIELD)) {
+			atl_one = 1;
+			ipa_nati_print_rule(&tbl_ptr[cnt], cnt);
+		}
+	}
+	if (!atl_one) {
+		IPADBG("No active base rules, total: %d\n",
+					 ipv4_nat_cache.ip4_tbl[tbl_hdl - 1].table_entries);
+	}
+	atl_one = 0;
+
+	/* Print ipv4 expansion rules */
+	IPADBG("Dumping ipv4 active expansion rules:\n");
+	tbl_ptr = (struct ipa_nat_rule *)
+	ipv4_nat_cache.ip4_tbl[tbl_hdl-1].ipv4_expn_rules_addr;
+	for (cnt = 0;
+			 cnt <= ipv4_nat_cache.ip4_tbl[tbl_hdl - 1].expn_table_entries;
+			 cnt++) {
+		if (Read16BitFieldValue(tbl_ptr[cnt].ip_cksm_enbl,
+					ENABLE_FIELD)) {
+			atl_one = 1;
+			ipa_nati_print_rule(&tbl_ptr[cnt],
+				(cnt + ipv4_nat_cache.ip4_tbl[tbl_hdl - 1].table_entries));
+		}
+	}
+	if (!atl_one) {
+		IPADBG("No active base expansion rules, total: %d\n",
+					 ipv4_nat_cache.ip4_tbl[tbl_hdl - 1].expn_table_entries);
+	}
+	atl_one = 0;
+
+	/* Print ipv4 index rules */
+	IPADBG("Dumping ipv4 index active rules:\n");
+	indx_tbl_ptr = (struct ipa_nat_indx_tbl_rule *)
+	ipv4_nat_cache.ip4_tbl[tbl_hdl-1].index_table_addr;
+	for (cnt = 0;
+			 cnt < ipv4_nat_cache.ip4_tbl[tbl_hdl - 1].table_entries;
+			 cnt++) {
+		if (Read16BitFieldValue(indx_tbl_ptr[cnt].tbl_entry_nxt_indx,
+					INDX_TBL_TBL_ENTRY_FIELD)) {
+			atl_one = 1;
+			ipa_nati_print_index_rule(&indx_tbl_ptr[cnt], cnt, 0);
+		}
+	}
+	if (!atl_one) {
+		IPADBG("No active index table rules, total:%d\n",
+					 ipv4_nat_cache.ip4_tbl[tbl_hdl - 1].table_entries);
+	}
+	atl_one = 0;
+
+
+	/* Print ipv4 index expansion rules */
+	IPADBG("Dumping ipv4 index expansion active rules:\n");
+	indx_tbl_ptr = (struct ipa_nat_indx_tbl_rule *)
+	ipv4_nat_cache.ip4_tbl[tbl_hdl-1].index_table_expn_addr;
+	for (cnt = 0;
+			 cnt <= ipv4_nat_cache.ip4_tbl[tbl_hdl - 1].expn_table_entries;
+			 cnt++) {
+		if (Read16BitFieldValue(indx_tbl_ptr[cnt].tbl_entry_nxt_indx,
+					INDX_TBL_TBL_ENTRY_FIELD)) {
+			atl_one = 1;
+			ipa_nati_print_index_rule(&indx_tbl_ptr[cnt],
+				(cnt + ipv4_nat_cache.ip4_tbl[tbl_hdl - 1].table_entries),
+				ipv4_nat_cache.ip4_tbl[tbl_hdl-1].index_expn_table_meta[cnt].prev_index);
+		}
+	}
+	if (!atl_one) {
+		IPADBG("No active index expansion rules, total:%d\n",
+					 ipv4_nat_cache.ip4_tbl[tbl_hdl - 1].expn_table_entries);
+	}
+	atl_one = 0;
+
+}
+
+void ipa_nati_print_rule(
+		struct ipa_nat_rule *param,
+		uint32_t rule_id)
+{
+	struct ipa_nat_sw_rule sw_rule;
+	memcpy(&sw_rule, param, sizeof(sw_rule));
+	uint32_t ip_addr;
+
+	IPADUMP("rule-id:%d  ", rule_id);
+	ip_addr = sw_rule.target_ip;
+	IPADUMP("Trgt-IP:%d.%d.%d.%d	",
+				((ip_addr & 0xFF000000) >> 24), ((ip_addr & 0x00FF0000) >> 16),
+			((ip_addr & 0x0000FF00) >> 8), ((ip_addr & 0x000000FF)));
+
+	IPADUMP("Trgt-Port:%d  Priv-Port:%d  ", sw_rule.target_port, sw_rule.private_port);
+
+	ip_addr = sw_rule.private_ip;
+	IPADUMP("Priv-IP:%d.%d.%d.%d ",
+							((ip_addr & 0xFF000000) >> 24), ((ip_addr & 0x00FF0000) >> 16),
+							((ip_addr & 0x0000FF00) >> 8), ((ip_addr & 0x000000FF)));
+
+	IPADUMP("Pub-Port:%d	Nxt-indx:%d  ", sw_rule.public_port, sw_rule.next_index);
+	IPADUMP("IP-cksm-delta:0x%x  En-bit:0x%x	", sw_rule.ip_chksum, sw_rule.enable);
+	IPADUMP("TS:0x%x	Proto:0x%x	", sw_rule.time_stamp, sw_rule.protocol);
+	IPADUMP("Prv-indx:%d	indx_tbl_entry:%d	", sw_rule.prev_index, sw_rule.indx_tbl_entry);
+	IPADUMP("Tcp-udp-cksum-delta:0x%x", sw_rule.tcp_udp_chksum);
+	IPADUMP("\n");
+	return;
+}
+
+void ipa_nati_print_index_rule(
+		struct ipa_nat_indx_tbl_rule *param,
+		uint32_t rule_id, uint16_t prev_indx)
+{
+	struct ipa_nat_sw_indx_tbl_rule sw_rule;
+	memcpy(&sw_rule, param, sizeof(sw_rule));
+
+	IPADUMP("rule-id:%d  Table_entry:%d  Next_index:%d, prev_indx:%d",
+					  rule_id, sw_rule.tbl_entry, sw_rule.next_index, prev_indx);
+	IPADUMP("\n");
+	return;
+}
+
+int ipa_nati_query_nat_rules(
+		uint32_t tbl_hdl,
+		nat_table_type tbl_type)
+{
+	struct ipa_nat_rule *tbl_ptr;
+	struct ipa_nat_indx_tbl_rule *indx_tbl_ptr;
+	int cnt = 0, ret = 0;
+
+	if (IPA_NAT_INVALID_NAT_ENTRY == tbl_hdl ||
+			tbl_hdl > IPA_NAT_MAX_IP4_TBLS) {
+		IPAERR("invalid table handle passed\n");
+		return ret;
+	}
+
+	/* Print ipv4 rules */
+	if (tbl_type == IPA_NAT_BASE_TBL) {
+		IPADBG("Counting ipv4 active rules:\n");
+		tbl_ptr = (struct ipa_nat_rule *)
+			 ipv4_nat_cache.ip4_tbl[tbl_hdl - 1].ipv4_rules_addr;
+		for (cnt = 0;
+				 cnt < ipv4_nat_cache.ip4_tbl[tbl_hdl - 1].table_entries;
+				 cnt++) {
+			if (Read16BitFieldValue(tbl_ptr[cnt].ip_cksm_enbl,
+						ENABLE_FIELD)) {
+				ret++;
+			}
+		}
+		if (!ret) {
+			IPADBG("No active base rules\n");
+		}
+
+		IPADBG("Number of active base rules: %d\n", ret);
+	}
+
+	/* Print ipv4 expansion rules */
+	if (tbl_type == IPA_NAT_EXPN_TBL) {
+		IPADBG("Counting ipv4 active expansion rules:\n");
+		tbl_ptr = (struct ipa_nat_rule *)
+			 ipv4_nat_cache.ip4_tbl[tbl_hdl - 1].ipv4_expn_rules_addr;
+		for (cnt = 0;
+				 cnt < ipv4_nat_cache.ip4_tbl[tbl_hdl - 1].expn_table_entries;
+				 cnt++) {
+			if (Read16BitFieldValue(tbl_ptr[cnt].ip_cksm_enbl,
+						ENABLE_FIELD)) {
+				ret++;
+			}
+		}
+		if (!ret) {
+			IPADBG("No active base expansion rules\n");
+		}
+
+		IPADBG("Number of active base expansion rules: %d\n", ret);
+	}
+
+	/* Print ipv4 index rules */
+	if (tbl_type == IPA_NAT_INDX_TBL) {
+		IPADBG("Counting ipv4 index active rules:\n");
+		indx_tbl_ptr = (struct ipa_nat_indx_tbl_rule *)
+			 ipv4_nat_cache.ip4_tbl[tbl_hdl - 1].index_table_addr;
+		for (cnt = 0;
+				 cnt < ipv4_nat_cache.ip4_tbl[tbl_hdl - 1].table_entries;
+				 cnt++) {
+			if (Read16BitFieldValue(indx_tbl_ptr[cnt].tbl_entry_nxt_indx,
+						INDX_TBL_TBL_ENTRY_FIELD)) {
+				ret++;
+			}
+		}
+		if (!ret) {
+			IPADBG("No active index table rules\n");
+		}
+
+		IPADBG("Number of active index table rules: %d\n", ret);
+	}
+
+	/* Print ipv4 index expansion rules */
+	if (tbl_type == IPA_NAT_INDEX_EXPN_TBL) {
+		IPADBG("Counting ipv4 index expansion active rules:\n");
+		indx_tbl_ptr = (struct ipa_nat_indx_tbl_rule *)
+			 ipv4_nat_cache.ip4_tbl[tbl_hdl - 1].index_table_expn_addr;
+		for (cnt = 0;
+				 cnt < ipv4_nat_cache.ip4_tbl[tbl_hdl - 1].expn_table_entries;
+				 cnt++) {
+			if (Read16BitFieldValue(indx_tbl_ptr[cnt].tbl_entry_nxt_indx,
+						INDX_TBL_TBL_ENTRY_FIELD)) {
+						ret++;
+			}
+		}
+
+		if (!ret)
+			IPADBG("No active index expansion rules\n");
+
+		IPADBG("Number of active index expansion rules: %d\n", ret);
+	}
+
+	return ret;
+}
+#endif

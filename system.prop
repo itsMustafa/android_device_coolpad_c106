@@ -214,6 +214,7 @@ sched.colocate.enable=1
 ro.product.brand=Coolpad
 ro.product.name=c106
 ro.product.device=c106
+ro.product.model=c106
 ro.internal.model=c106
 ro.vendor.wechatpay.support=true
 

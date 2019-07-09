@@ -64,10 +64,10 @@ static int read_file2(const char *fname, char *data, int max_size)
 
 void vendor_load_properties() {
     char device[PROP_VALUE_MAX];
-    int isX520 = 0, isX522 = 0, isX526 = 0, isX527 = 0;
+//    int isX520 = 0, isX522 = 0, isX526 = 0, isX527 = 0;
 
     // Default props
-    if (read_file2(DEVINFO_FILE, device, sizeof(device)))
+/*    if (read_file2(DEVINFO_FILE, device, sizeof(device)))
     {
         if (!strncmp(device, "s2_open", 7))
         {
@@ -111,5 +111,6 @@ void vendor_load_properties() {
     {
         // Unknown variant
         property_set("ro.product.model", "C106");
-    }
+    }*/
+	property_set("ro.product.model", "C106");
 }
