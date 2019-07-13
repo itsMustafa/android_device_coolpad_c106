@@ -29,6 +29,10 @@ $(call inherit-product, device/coolpad/c106/full_c106.mk)
 # Inherit some common AOSP stuff.
 $(call inherit-product, vendor/aosp/config/common_full_phone.mk)
 
+# Maintainer Prop
+PRODUCT_BUILD_PROP_OVERRIDES += \
+DEVICE_MAINTAINERS="Mustafa Shaikh"
+
 ## Device identifier. This must come after all inclusions
 PRODUCT_DEVICE := c106
 PRODUCT_NAME := aosp_c106
@@ -44,7 +48,8 @@ PRODUCT_BUILD_PROP_OVERRIDES += \
 
 BUILD_FINGERPRINT := Letv/c106_WW/le_c106_ww:6.0.1/IIXOSOP5801910121S/44:user/release-keys
 
-PRODUCT_SYSTEM_PROPERTY_BLACKLIST += ro.product.model
-
 # Release name
 PRODUCT_RELEASE_NAME := c106
+
+# Official
+CUSTOM_BUILD_TYPE=OFFICIAL
