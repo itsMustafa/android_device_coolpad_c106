@@ -8,9 +8,5 @@
     "remote": "evo-devices",
     "repository": "vendor_coolpad_c106",
     "target_path": "vendor/coolpad/c106"
-  },
-  {
-    "repository": "android_packages_resources_devicesettings",
-    "target_path": "packages/resources/devicesettings"
   }
 ]
