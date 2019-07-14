@@ -1,11 +1,13 @@
 [
   {
+    "remote": "evo-devices",
     "repository": "android_kernel_coolpad_msm8976",
     "target_path": "kernel/coolpad/msm8976"
   },
   {
-    "repository": "proprietary_vendor_leeco",
-    "target_path": "vendor/coolpad"
+    "remote": "evo-devices",
+    "repository": "vendor_coolpad_c106",
+    "target_path": "vendor/coolpad/c106"
   },
   {
     "repository": "android_packages_resources_devicesettings",
