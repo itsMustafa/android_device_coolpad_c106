@@ -2,10 +2,8 @@ TWRP tree for c103
 
 Full Compilation
 
-        $ source build/envsetup.sh
+        $ source . build/envsetup.sh
 
         $ lunch omni_c103-eng
 
-        $ make clean
-
-		$ make recoveryimage
+	$ mka recoveryimage
