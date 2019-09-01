@@ -83,12 +83,19 @@ TW_OREO_MR1_F2FS := true
 TW_EXCLUDE_TWRPAPP := true
 TW_INCLUDE_NTFS_3G := true
 #SHRP
-SHRP_MAINTAINER_NAME="epicX"
-SHRP_PRODUCT="c103"
+SHRP_MAINTAINER_NAME=epicX
+SHRP_PRODUCT=c103
 SHRP_EDL="1"
-SHRP_EXTERNAL_MOUNT="/external_sd"
-SHRP_INTERNAL_MOUNT="/sdcard"
-SHRP_OTG_MOUNT="/usb-otg"
+SHRP_EXTERNAL_MOUNT=/external_sd
+SHRP_INTERNAL_MOUNT=/sdcard
+SHRP_OTG_MOUNT=/usb-otg
+SHRP_FLASHLIGHT=1
+SHRP_FLASH_ON_PATH_1=echo 200 > /sys/class/leds/led:torch_0/brightness
+SHRP_FLASH_ON_PATH_2=echo 200 > /sys/class/leds/led:torch_1/brightness
+SHRP_FLASH_ON_PATH_3=echo 1 > /sys/class/leds/led:switch/brightness
+SHRP_FLASH_OFF_PATH_1=echo 0 > /sys/class/leds/led:torch_0/brightness
+SHRP_FLASH_OFF_PATH_2=echo 0 > /sys/class/leds/led:torch_1/brightness
+SHRP_FLASH_OFF_PATH_3=echo 0 > /sys/class/leds/led:switch/brightness
 
 
 
