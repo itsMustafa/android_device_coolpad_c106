@@ -82,6 +82,8 @@ TW_USE_TOOLBOX := true
 TW_OREO_MR1_F2FS := true
 TW_EXCLUDE_TWRPAPP := true
 TW_INCLUDE_NTFS_3G := true
+
+
 #SHRP
 SHRP_MAINTAINER_NAME=epicX
 SHRP_PRODUCT=c103
@@ -96,6 +98,7 @@ SHRP_FLASH_ON_PATH_3=echo 1 > /sys/class/leds/led:switch/brightness
 SHRP_FLASH_OFF_PATH_1=echo 0 > /sys/class/leds/led:torch_0/brightness
 SHRP_FLASH_OFF_PATH_2=echo 0 > /sys/class/leds/led:torch_1/brightness
 SHRP_FLASH_OFF_PATH_3=echo 0 > /sys/class/leds/led:switch/brightness
+SHRP_RECOVERY_PATH=/dev/block/bootdevice/by-name/recovery
 
 
 
