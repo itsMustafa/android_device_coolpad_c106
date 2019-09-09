@@ -16,4 +16,4 @@ export SHRP_FLASH_OFF_PATH_3=echo 0 > /sys/class/leds/led:switch/brightness
 export SHRP_RECOVERY_PATH=/dev/block/bootdevice/by-name/recovery
 
 
-source ~/epicx/twrp/build/SHRP/shrp.sh
+source ~/twrp/build/shrp/shrp.sh
