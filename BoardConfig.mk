@@ -83,5 +83,8 @@ TW_OREO_MR1_F2FS := true
 TW_EXCLUDE_TWRPAPP := true
 TW_INCLUDE_NTFS_3G := true
 
+#Ignore Missing Dependencies
+ALLOW_MISSING_DEPENDENCIES=true
+
 
 
