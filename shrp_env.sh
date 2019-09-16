@@ -16,4 +16,4 @@ export SHRP_FOFP_3="echo 0 > /sys/class/leds/led:switch/brightness"
 export SHRP_REC="/dev/block/bootdevice/by-name/recovery"
 
 
-source shrp.sh
+source */shrp.sh
