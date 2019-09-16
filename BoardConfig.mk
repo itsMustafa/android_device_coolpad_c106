@@ -87,4 +87,8 @@ TW_INCLUDE_NTFS_3G := true
 ALLOW_MISSING_DEPENDENCIES=true
 
 
+#SHRP_Variables
+SHRP_DEVICE_DIR=device/coolpad/c103
+
+
 
