@@ -12,6 +12,3 @@ export SHRP_FONP_1="/sys/class/leds/led:torch_0/brightness"
 export SHRP_FONP_2="/sys/class/leds/led:torch_1/brightness"
 export SHRP_FONP_3="/sys/class/leds/led:switch/brightness"
 export SHRP_REC="/dev/block/bootdevice/by-name/recovery"
-
-
-source */shrp.sh
