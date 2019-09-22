@@ -88,7 +88,7 @@ ALLOW_MISSING_DEPENDENCIES=true
 
 
 #SHRP_Variables
-SHRP_DEVICE_DIR=device/coolpad/c103
+SHRP_PATH := device/coolpad/c103
 
 
 
