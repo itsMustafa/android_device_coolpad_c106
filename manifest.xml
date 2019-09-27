@@ -60,7 +60,7 @@
     </hal>
     <hal format="hidl">
         <name>android.hardware.camera.provider</name>
-        <transport>hwbinder</transport>
+        <transport arch="32+64">passthrough</transport>
         <version>2.4</version>
         <interface>
             <name>ICameraProvider</name>
@@ -94,11 +94,13 @@
             <name>ICryptoFactory</name>
             <instance>clearkey</instance>
             <instance>default</instance>
+            <instance>widevine</instance>
         </interface>
         <interface>
             <name>IDrmFactory</name>
             <instance>clearkey</instance>
             <instance>default</instance>
+            <instance>widevine</instance>
         </interface>
         <fqname>@1.1::ICryptoFactory/clearkey</fqname>
         <fqname>@1.1::IDrmFactory/clearkey</fqname>
@@ -136,7 +138,7 @@
     </hal>
     <hal format="hidl">
         <name>android.hardware.graphics.composer</name>
-        <transport>hwbinder</transport>
+        <transport arch="32+64">passthrough</transport>
         <version>2.1</version>
         <interface>
             <name>IComposer</name>
@@ -158,6 +160,7 @@
         <version>2.0</version>
         <interface>
             <name>IHealth</name>
+            <instance>backup</instance>
             <instance>default</instance>
         </interface>
     </hal>
@@ -395,6 +398,15 @@
         <interface>
             <name>IUceService</name>
             <instance>com.qualcomm.qti.uceservice</instance>
+        </interface>
+    </hal>
+    <hal format="hidl">
+        <name>vendor.lineage.trust</name>
+        <transport>hwbinder</transport>
+        <version>1.0</version>
+        <interface>
+            <name>IUsbRestrict</name>
+            <instance>default</instance>
         </interface>
     </hal>
     <hal format="hidl">

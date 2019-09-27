@@ -18,8 +18,8 @@
 
 set -e
 
-DEVICE=s2
-VENDOR=leeco
+DEVICE=c106
+VENDOR=coolpad
 
 # Load extractutils and do some sanity checks
 MY_DIR="${BASH_SOURCE%/*}"
