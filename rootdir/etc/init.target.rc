@@ -156,16 +156,10 @@ on post-fs-data
 
 # start camera server as daemon
 service qcamerasvr /system/bin/mm-qcamera-daemon
-    class main
+    class late_start
     user camera
     group camera system inet input graphics
     writepid /dev/cpuset/camera-daemon/tasks
-
-on property:init.svc.media=restarting
-    restart qcamerasvr
-
-on property:init.svc.servicemanager=restarting
-    restart qcamerasvr
 
 # Allow usb charging to be disabled peristently
 on property:persist.usb.chgdisabled=1
@@ -179,6 +173,7 @@ service vendor.qseecomd /system/vendor/bin/qseecomd
    user root
    group root
    writepid /dev/cpuset/foreground/tasks
+   writepid /dev/cpuset/camera-daemon/tasks
 
 service vendor.thermal-engine /system/vendor/bin/thermal-engine
    class main
@@ -189,6 +184,7 @@ service vendor.thermal-engine /system/vendor/bin/thermal-engine
    socket thermal-send-rule stream 0660 system system
    group system root diag
    writepid /dev/cpuset/system-background/tasks
+   writepid /dev/cpuset/camera-daemon/tasks
 
 on boot
     start vendor.rmt_storage
@@ -197,8 +193,8 @@ on boot
 
     write /proc/sys/kernel/sched_boost 1
 
-service vendor.wcnss-service /system/vendor/bin/wcnss_service
-    class late_start
+service vendor.wcnss-service /system/bin/wcnss_service
+    class main
     user system
     group system wifi radio
     oneshot
@@ -269,7 +265,10 @@ service gx_fpd /vendor/bin/gx_fpd
     group root system
 
 on charger
+    load_system_props
+    setprop persist.sys.usb.config mass_storage
     start vendor.qcom-post-boot
+    setprop persist.sys.usb.config mass_storage
     start vendor.hvdcp_opti
     start vendor.thermal-engine
     start vendor.power_off_alarm

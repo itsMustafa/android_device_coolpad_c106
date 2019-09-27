@@ -92,6 +92,16 @@
 /dev/wcnss_ctrl           0660   system     system
 /sys/devices/soc.0/a000000.qcom,wcnss-wlan/net/wlan0/queues/rx-* rps_cpus           0660   system     system
 /sys/devices/soc.0/a000000.qcom,wcnss-wlan/net/p2p0/queues/rx-* rps_cpus            0660   system     system
+/dev/spidev0.0            0660   system     audio
+/dev/msm_camera/*         0660   system     camera
+/dev/gemini/              0660   system     camera
+/dev/mercury0             0660   system     camera
+/dev/msm_vidc_reg         0660   system     camera
+/dev/msm_vidc_dec         0660   system     camera
+/dev/msm_vidc_dec_sec     0660   system     camera
+/dev/msm_vidc_enc         0660   system     camera
+/dev/msm_rotator          0660   system     system
+/dev/sdsprpc-smd          0660   system     system
 
 #permissions for audio
 /dev/wcd_dsp0_control     0660   system     audio
