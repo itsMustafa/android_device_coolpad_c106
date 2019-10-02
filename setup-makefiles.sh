@@ -18,8 +18,9 @@
 
 set -e
 
-DEVICE=s2
-VENDOR=leeco
+# Required!
+DEVICE=c106
+VENDOR=coolpad
 
 INITIAL_COPYRIGHT_YEAR=2016
 
