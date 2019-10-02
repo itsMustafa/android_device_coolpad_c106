@@ -25,19 +25,19 @@
 
     <!-- Minimum screen brightness setting allowed by the power manager.
          The user is forbidden from setting the brightness below this level. -->
-    <integer name="config_screenBrightnessSettingMinimum">10</integer>
+    <integer name="config_screenBrightnessSettingMinimum">1</integer>
 
     <!-- Default screen brightness setting.
          Must be in the range specified by minimum and maximum. -->
-    <integer name="config_screenBrightnessSettingDefault">90</integer>
+    <integer name="config_screenBrightnessSettingDefault">128</integer>
 
     <!-- Stability requirements in milliseconds for accepting a new brightness level.  This is used
          for debouncing the light sensor.  Different constants are used to debounce the light sensor
          when adapting to brighter or darker environments.  This parameter controls how quickly
          brightness changes occur in response to an observed change in light level that exceeds the
          hysteresis threshold. -->
-    <integer name="config_autoBrightnessBrighteningLightDebounce">1000</integer>
-    <integer name="config_autoBrightnessDarkeningLightDebounce">2500</integer>
+    <integer name="config_autoBrightnessBrighteningLightDebounce">2000</integer>
+    <integer name="config_autoBrightnessDarkeningLightDebounce">4000</integer>
 
     <!-- Array of light sensor LUX values to define our levels for auto backlight brightness support.
          The N entries of this array define N + 1 control points as follows:
@@ -56,25 +56,20 @@
          backlight values for LUX levels between these control points.
          Must be overridden in platform specific overlays -->
     <integer-array name="config_autoBrightnessLevels">
-        <item>2</item>
-        <item>3</item>
-        <item>4</item>
-        <item>5</item>
-        <item>8</item>
-        <item>12</item>
-        <item>20</item>
-        <item>33</item>
-        <item>55</item>
-        <item>90</item>
-        <item>148</item>
-        <item>245</item>
-        <item>403</item>
-        <item>665</item>
-        <item>1097</item>
-        <item>1808</item>
+        <item>10</item>
+        <item>30</item>
+        <item>80</item>
+        <item>120</item>
+        <item>225</item>
+        <item>320</item>
+        <item>550</item>
+        <item>880</item>
+        <item>1250</item>
+        <item>2000</item>
+        <item>3000</item>
         <item>5000</item>
-        <item>8000</item>
-        <item>10000</item>
+        <item>5500</item>
+        <item>7500</item>
     </integer-array>
 
     <!-- Array of output values for LCD backlight corresponding to the LUX values
@@ -83,24 +78,19 @@
          The brightness values must be between 0 and 255 and be non-decreasing.
          This must be overridden in platform specific overlays -->
     <integer-array name="config_autoBrightnessLcdBacklightValues">
-        <item>20</item>
-        <item>22</item>
-        <item>24</item>
-        <item>26</item>
-        <item>28</item>
-        <item>30</item>
-        <item>33</item>
-        <item>35</item>
-        <item>40</item>
-        <item>45</item>
-        <item>50</item>
-        <item>70</item>
-        <item>90</item>
-        <item>110</item>
-        <item>120</item>
-        <item>130</item>
-        <item>160</item>
-        <item>180</item>
+        <item>11</item>
+        <item>18</item>
+        <item>29</item>
+        <item>34</item>
+        <item>46</item>
+        <item>54</item>
+        <item>69</item>
+        <item>81</item>
+        <item>100</item>
+        <item>123</item>
+        <item>148</item>
+        <item>187</item>
+        <item>196</item>
         <item>225</item>
         <item>255</item>
     </integer-array>
@@ -110,28 +100,23 @@
          than the size of the config_autoBrightnessLevels array.
          This must be overridden in platform specific overlays -->
     <integer-array name="config_autoBrightnessButtonBacklightValues">
+    	<item>11</item>
         <item>18</item>
-        <item>20</item>
-        <item>22</item>
-        <item>25</item>
-        <item>26</item>
-        <item>28</item>
-        <item>30</item>
-        <item>33</item>
-        <item>35</item>
-        <item>45</item>
-        <item>50</item>
-        <item>70</item>
-        <item>90</item>
-        <item>110</item>
-        <item>120</item>
-        <item>130</item>
-        <item>160</item>
-        <item>180</item>
+        <item>29</item>
+        <item>34</item>
+        <item>46</item>
+        <item>54</item>
+        <item>69</item>
+        <item>81</item>
+        <item>100</item>
+        <item>123</item>
+        <item>148</item>
+        <item>187</item>
+        <item>196</item>
         <item>225</item>
         <item>255</item>
     </integer-array>
-
+        
     <!-- Enable adjusting the button backlight -->
     <bool name="config_deviceHasVariableButtonBrightness">true</bool>
     
@@ -279,12 +264,6 @@
     <!-- Flag indicating if the speed up audio on mt call code should be executed -->
     <bool name="config_speed_up_audio_on_mt_calls">true</bool>
 
-    <!-- Fast brightness animation ramp rate in brightness units per second-->
-    <integer translatable="false" name="config_brightness_ramp_rate_fast">180</integer>
-
-    <!-- Slow brightness animation ramp rate in brightness units per second-->
-    <integer translatable="false" name="config_brightness_ramp_rate_slow">60</integer>
-
     <!-- Make things go fast -->
     <bool name="config_ui_enableFadingMarquee">false</bool>
 
@@ -330,13 +309,6 @@
     <!-- If true, the doze component is not started until after the screen has been
          turned off and the screen off animation has been performed. -->
     <bool name="config_dozeAfterScreenOffByDefault">true</bool>
-
-    <!-- Whether the always on display mode is available. -->
-    <bool name="config_dozeAlwaysOnDisplayAvailable">true</bool>
-
-    <!-- Control whether the always on display mode is enabled by default. This value will be used
-         during initialization when the setting is still null. -->
-    <bool name="config_dozeAlwaysOnEnabled">false</bool>
 
     <!-- Power Management: Specifies whether to decouple the auto-suspend state of the
          device from the display on/off state.
@@ -411,7 +383,7 @@
 
     <string-array name="config_mobile_tcp_buffers">
         <item>"lte:2097152,4194304,8388608,262144,524288,1048576"</item>
-        <item>"lte_ca:2097152,4194304,8388608,262144,524288,1048576"</item>
+        <item>"lte_ca:4096,6291456,12582912,4096,1048576,2097152"</item>
         <item>"umts:4094,87380,110208,4096,16384,110208"</item>
         <item>"hspa:4094,87380,1220608,4096,16384,1220608"</item>
         <item>"hsupa:4094,87380,1220608,4096,16384,1220608"</item>
@@ -467,19 +439,9 @@
          and one pSIM) -->
     <integer name="config_num_physical_slots">2</integer>
 
-    <!-- Whether the Unprocessed audio source supports the required frequency range and level -->
-    <bool name="config_supportAudioSourceUnprocessed">true</bool>
+   <!-- Whether the Unprocessed audio source supports the required frequency range and level -->
+   <bool name="config_supportAudioSourceUnprocessed">true</bool>
 
-    <!-- Is the battery LED intrusive? -->
-    <bool name="config_intrusiveBatteryLed">true</bool>
-
-    <!-- Does the battery LED support multiple colors? -->
-    <bool name="config_multiColorBatteryLed">true</bool>
-
-    <!-- Do the battery/notification LEDs support pulsing?
-        Used to decide if we show pulse settings -->
-    <bool name="config_ledCanPulse">true</bool>
-    
     <!-- Indicate whether to allow the device to suspend when the screen is off
           due to the proximity sensor.  This resource should only be set to true
           if the sensor HAL correctly handles the proximity sensor as a wake-up source.
@@ -489,21 +451,4 @@
 
     <!-- Allow automatic adjusting of the screen brightness while dozing in low power state. -->
     <bool name="config_allowAutoBrightnessWhileDozing">true</bool>
-
-    <!-- Whether device ignores the RSSNR signal implementation -->
-    <bool name="config_ignoreRssnrSignalLevel">true</bool>
-
-    <!-- When true, the tethering upstream network follows the current default
-        Internet network (except when the current default network is mobile,
-        in which case a DUN network will be used if required). -->
-    <bool translatable="false" name="config_tether_upstream_automatic">true</bool>
-
-    <!-- Amount of time it takes for the light sensor to warm up in milliseconds.
-         For this time after the screen turns on, the Power Manager
-         will not debounce light sensor readings -->
-    <integer name="config_lightSensorWarmupTime">200</integer>
-
-    <!-- Whether device needs to wait for Qualcomm MPCTL service to start
-	 before setting power profiles on boot. -->
-    <bool name="config_waitForMpctlOnBoot">true</bool>
 </resources>
