@@ -14,6 +14,13 @@
 # limitations under the License.
 #
 
+# Boot animation
+TARGET_BOOT_ANIMATION_RES := 1080
+
+# GAPPS
+WITH_GAPPS := true
+TARGET_GAPPS_ARCH := arm64
+IS_PHONE := true
 
 # Inherit device configuration
 $(call inherit-product, device/coolpad/c106/full_c106.mk)
@@ -22,25 +29,26 @@ $(call inherit-product, device/coolpad/c106/full_c106.mk)
 $(call inherit-product, vendor/aosp/config/common_full_phone.mk)
 
 # PixelExperience stuff.
-TARGET_BOOT_ANIMATION_RES := 1080
-TARGET_GAPPS_ARCH := arm64
+#TARGET_BOOT_ANIMATION_RES := 1080
+#TARGET_GAPPS_ARCH := arm64
 
 ## Device identifier. This must come after all inclusions
 PRODUCT_DEVICE := c106
 PRODUCT_NAME := aosp_c106
-PRODUCT_BRAND := LeEco
-PRODUCT_MANUFACTURER := LeMobile
-
+PRODUCT_BRAND := coolpad
+PRODUCT_MANUFACTURER := coolpad
 PRODUCT_GMS_CLIENTID_BASE := android-leeco
 
 PRODUCT_BUILD_PROP_OVERRIDES += \
-    TARGET_DEVICE=le_c106 \
-    PRODUCT_NAME=c106_CN \
-    PRIVATE_BUILD_DESC="c106-user 6.0.1 IIXOSOP5801910121S 44 release-keys"
+
+    TARGET_DEVICE=c106 \
+    PRODUCT_NAME=cool1 \
+    PRIVATE_BUILD_DESC="c1-user 6.0.1 ZIXOSOP5801803011S 0001832 release-keys"
 
 BUILD_FINGERPRINT := Letv/c106_WW/le_c106_ww:6.0.1/IIXOSOP5801910121S/44:user/release-keys
 
 PRODUCT_SYSTEM_PROPERTY_BLACKLIST += ro.product.model
 
 # Release name
-PRODUCT_RELEASE_NAME := c106
+PRODUCT_RELEASE_NAME := cool1
+
