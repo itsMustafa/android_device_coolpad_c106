@@ -1,1 +1,1 @@
-add_lunch_combo arrow_c106-userdebug
+add_lunch_combo aosp_c106-userdebug

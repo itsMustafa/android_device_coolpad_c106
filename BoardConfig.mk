@@ -300,5 +300,8 @@ TARGET_USES_WCNSS_MAC_ADDR_REV		:= true
 #Enable DRM plugins 64 bit compilation
 TARGET_ENABLE_MEDIADRM_64 := true
 
+# OTA Assert
+TARGET_OTA_ASSERT_DEVICE := c106,C106,c103,C103,cool_c1,le_c106,aosp_c106
+
 # inherit from the proprietary version
 -include vendor/coolpad/c106/BoardConfigVendor.mk
