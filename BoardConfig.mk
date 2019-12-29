@@ -296,6 +296,8 @@ PRODUCT_VENDOR_MOVE_ENABLED		:= true
 TARGET_DISABLE_WCNSS_CONFIG_COPY	:= true
 TARGET_USES_WCNSS_MAC_ADDR_REV		:= true
 
+# Disable qmi EAP-SIM security
+DISABLE_EAP_PROXY := true
 
 #Enable DRM plugins 64 bit compilation
 TARGET_ENABLE_MEDIADRM_64 := true
