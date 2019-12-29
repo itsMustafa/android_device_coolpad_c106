@@ -24,7 +24,7 @@ $(call inherit-product, vendor/coolpad/c106/c106-vendor.mk)
 # Overlay
 DEVICE_PACKAGE_OVERLAYS += \
     $(LOCAL_PATH)/overlay \
-    vendor/aosp/overlay/CarrierConfig
+    vendor/pa/overlay/CarrierConfig
 
 PRODUCT_ENFORCE_RRO_TARGETS := \
     framework-res
