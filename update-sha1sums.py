@@ -19,8 +19,8 @@
 from hashlib import sha1
 import sys
 
-device='s2'
-vendor='leeco'
+device='c106'
+vendor='coolpad'
 
 lines = [ line for line in open('proprietary-files-qc.txt', 'r') ]
 vendorPath = '../../../vendor/' + vendor + '/' + device + '/proprietary'

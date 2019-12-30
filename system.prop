@@ -1,5 +1,6 @@
 #Audio
 af.fast_track_multiplier=1
+vendor.audio_hal.in_period_size=192
 audio.deep_buffer.media=true
 audio.offload.min.duration.secs=30
 audio.offload.video=true
@@ -14,10 +15,10 @@ ro.vendor.audio.sdk.ssr=false
 vendor.audio.dolby.ds2.enabled=true
 vendor.audio.offload.buffer.size.kb=64
 vendor.audio.offload.gapless.enabled=true
+audio.offload.min.duration.secs=30
 vendor.audio.offload.multiple.enabled=false
-vendor.audio.offload.track.enable=true
-vendor.audio.offload.pcm.16bit.enable=true
-vendor.audio.offload.pcm.24bit.enable=true
+vendor.audio.offload.track.enable=false
+audio.offload.video=false
 vendor.audio.playback.mch.downsample=true
 vendor.voice.playback.conc.disabled=true
 vendor.audio.safx.pbe.enabled=true
@@ -33,6 +34,9 @@ ro.config.media_vol_steps=25
 
 # Property for AudioSphere Post Processing
 vendor.audio.pp.asphere.enabled=false
+
+# Property for disabling in-band ringing
+persist.bluetooth.disableinbandringing=0
 
 # Assertive Display
 ro.qcom.ad=1
@@ -75,6 +79,7 @@ dalvik.vm.image-dex2oat-threads=4
 
 # Fastcharge
 persist.sys.le_fast_chrg_enable=1
+persist.hvdcp.allow_opti=1
 
 # Fingerprint
 persist.qfp=false
@@ -116,6 +121,9 @@ mm.enable.sec.smoothstreaming=true
 mmp.enable.3g2=true
 media.aac_51_output_enabled=true
 mm.enable.qcom_parser=4194303
+
+# Memory optimizations
+ro.vendor.qti.sys.fw.bservice_enable=true
 
 # Netmgrd
 ro.use_data_netmgrd=true
@@ -209,7 +217,10 @@ persist.debug.8976.config=true
 sched.colocate.enable=1
 
 # for alipay auth
-ro.internal.model=Le X520
+ro.product.brand=Coolpad
+ro.product.name=c106
+ro.product.device=c106
+ro.internal.model=c106
 ro.vendor.wechatpay.support=true
 
 #low audio flinger standby delay to reduce power consumption
@@ -218,3 +229,22 @@ ro.audio.flinger_standbytime_ms=300
 #UI efficiency props
 ro.min.fling_velocity=160
 ro.max.fling_velocity=20000
+
+# GCAM Fixes
+camera.HAL3.enabled=1
+persist.camera.eis.enable=1
+camera.eis.enable=1
+persist.camera.is_mode=4
+camera.is_mode=4
+persist.camera.disable_zsl_mode=1
+camera.disable_zsl_mode=1
+persist.camera.gyro.android=4
+camera.gyro.android=4
+persist.camera.tof.direct=1
+camera.tof.direct=1
+persist.camera.tnr.preview=1
+camera.tnr.preview=1
+persist.camera.tnr.video=1
+camera.tnr.video=1
+ro.camera.notify_nfc=1
+camera.notify_nfc=1

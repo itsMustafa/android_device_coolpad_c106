@@ -1,11 +1,11 @@
 [
   {
-    "repository": "kernel_leeco_msm8976",
-    "target_path": "kernel/leeco/msm8976"
+    "repository": "kernel_coolpad_msm8976",
+    "target_path": "kernel/coolpad/msm8976"
   },
   {
     "repository" : "vendor_leeco",
-    "target_path": "vendor/leeco"
+    "target_path": "vendor/coolpad"
   },
   {
     "repository": "LineageOS/android_packages_resources_devicesettings",
