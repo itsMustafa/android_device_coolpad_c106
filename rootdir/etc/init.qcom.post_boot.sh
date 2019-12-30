@@ -79,6 +79,13 @@ vmpres_file_min=$((minfree_5 + (minfree_5 - rem_minfree_4)))
 echo $vmpres_file_min > /sys/module/lowmemorykiller/parameters/vmpressure_file_min
 echo 0 > /sys/module/lowmemorykiller/parameters/enable_adaptive_lmk
 
+panel=`cat /sys/class/graphics/fb0/modes`
+if [ "${panel:5:1}" == "x" ]; then
+    panel=${panel:2:3}
+else
+    panel=${panel:2:4}
+fi
+
 # Apply Scheduler and Governor settings for 8976
 # SoC IDs are 266, 274, 277, 278
 # HMP scheduler (big.Little cluster related) settings

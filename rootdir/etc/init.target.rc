@@ -38,6 +38,9 @@ on fs
     # Bluetooth 
     mkdir /persist/wlan_bt 0700 system system
 
+    restorecon_recursive /persist
+    restorecon_recursive /dsp
+
     # Start HW service manager early
     start hwservicemanager
 
@@ -54,6 +57,8 @@ on late-fs
 on post-fs-data
     mkdir /persist/data/sfs 0700 system system
     mkdir /persist/data/tz 0700 system system
+    mkdir /data/misc/dts 0770 media audio
+    mkdir /data/misc/audio_pp 0771 media audio
 
     chown media media /dev/i2c_smartpa
     chmod 0660 /dev/i2c_smartpa
@@ -177,6 +182,10 @@ service thermal-engine /system/vendor/bin/thermal-engine
 on boot
     start rmt_storage
 
+    chown system system /proc/touchpanel/capacitive_keys_enable
+
+    write /proc/sys/kernel/sched_boost 1
+
 service wcnss-service /system/vendor/bin/wcnss_service
     class late_start
     user system
@@ -188,6 +197,25 @@ service ppd /system/vendor/bin/mm-pp-daemon
     user system
     socket pps stream 0660 system system
     group system graphics
+
+on property:init.svc.surfaceflinger=stopped
+    stop ppd
+
+on property:init.svc.surfaceflinger=running
+    start ppd
+
+# workaround for color service issue
+on property:init.svc.surfaceflinger=restarting
+    stop ppd
+
+on property:init.svc.zygote=stopped
+    stop ppd
+
+on property:init.svc.zygote=running
+    start ppd
+
+on property:init.svc.zygote=restarting
+    stop ppd
 
 service vendor.imsqmidaemon /system/vendor/bin/imsqmidaemon
     class main
@@ -235,6 +263,7 @@ service gx_fpd /vendor/bin/gx_fpd
 on charger
     setprop persist.sys.usb.config mass_storage
     start qcom-post-boot
+    start hvdcp_opti
     start thermal-engine
 
 service adsprpcd /system/vendor/bin/adsprpcd
@@ -242,6 +271,12 @@ service adsprpcd /system/vendor/bin/adsprpcd
     user media
     group media
     writepid /dev/cpuset/system-background/tasks
+
+service hvdcp_opti /system/vendor/bin/hvdcp_opti
+    class main
+    user root
+    group system wakelock
+    seclabel u:r:hvdcp:s0
 
 service vendor.per_mgr /system/vendor/bin/pm-service
     class core
