@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 # OTA Assert
-TARGET_OTA_ASSERT_DEVICE := c103
+TARGET_OTA_ASSERT_DEVICE := C106
 
 # Bootloader
 TARGET_BOOTLOADER_BOARD_NAME := MSM8952
@@ -45,7 +45,7 @@ BOARD_KERNEL_CMDLINE += androidboot.selinux=permissive
 BOARD_KERNEL_BASE := 0x80000000
 BOARD_KERNEL_PAGESIZE := 2048
 BOARD_MKBOOTIMG_ARGS := --ramdisk_offset 0x02000000 --tags_offset 0x00000100
-TARGET_PREBUILT_KERNEL := device/coolpad/c103/prebuilt/Image.gz-dtb
+TARGET_PREBUILT_KERNEL := device/coolpad/C106/prebuilt/Image.gz-dtb
 
 # Partitions
 BOARD_FLASH_BLOCK_SIZE := 131072 # (BOARD_KERNEL_PAGESIZE * 64)
@@ -88,9 +88,9 @@ ALLOW_MISSING_DEPENDENCIES=true
 
 
 #SHRP_Variables
-SHRP_PATH := device/coolpad/c103
+SHRP_PATH := device/coolpad/C106
 SHRP_MAINTAINER := epicX
-SHRP_DEVICE_CODE := c103
+SHRP_DEVICE_CODE := C106
 SHRP_EDL_MODE := 1
 SHRP_EXTERNAL := /external_sd
 SHRP_INTERNAL := /sdcard
@@ -101,3 +101,7 @@ SHRP_FONP_2 := /sys/class/leds/led:torch_1/brightness
 SHRP_FONP_3 := /sys/class/leds/led:switch/brightness
 SHRP_FLASH_MAX_BRIGHTNESS := 200
 SHRP_REC := /dev/block/bootdevice/by-name/recovery
+
+#OFFICIAL
+PB_OFFICIAL := true
+PB_OFFICIAL_CH := true

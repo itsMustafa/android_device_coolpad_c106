@@ -17,12 +17,12 @@
 # Product common configurations
 $(call inherit-product, $(SRC_TARGET_DIR)/product/core_64_bit.mk)
 $(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
-$(call inherit-product, vendor/omni/config/common.mk)
+$(call inherit-product, vendor/pb/config/common.mk)
 $(call inherit-product, frameworks/native/build/phone-xhdpi-2048-dalvik-heap.mk)
 
 # Device identifier. This must come after all inclusions
-PRODUCT_NAME := omni_c103
-PRODUCT_DEVICE := c103
+PRODUCT_NAME := omni_C106
+PRODUCT_DEVICE := C106
 PRODUCT_BRAND := coolpad
 PRODUCT_MANUFACTURER := Coolpad
 PRODUCT_MODEL := Coolpad Cool 1 Dual
